@@ -6,6 +6,9 @@ import { applyCodexEvent } from "./event-parser.js";
 import { readNativeGoal, readNativeGoalState } from "./goal-store.js";
 import { codexConfigText, disableMcpServerArgs, supervisorMcpDisableArgs } from "./mcp-config.js";
 import { fileURLToPath } from "node:url";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 
 const quoteCommand = (path) => process.platform === "win32" ? `"${path.replace(/"/g, '""')}"` : `'${path.replace(/'/g, "'\\''")}'`;
 
@@ -13,14 +16,23 @@ const CODEX_NPM_ENTRY = { pkg: "@openai/codex", bin: "bin/codex.js" };
 
 // "provider/model" selects a model_providers entry of the Codex config, so one
 // stored model string carries the provider through dispatch, resume and side chat.
-export function modelArgs(model, flag = "--model") {
+// A catalog replaces Codex's whole model list, so <CODEX_HOME>/catalogs/<provider>.json
+// is passed only for runs on that provider.
+export function modelArgs(model, flag = "--model", codexHome = null) {
   if (!model) return [];
   const split = String(model).match(/^([a-z0-9_-]+)\/(.+)$/);
   if (!split) return [flag, model];
-  return ["-c", `model_provider="${split[1]}"`, flag, split[2]];
+  const args = ["-c", `model_provider="${split[1]}"`];
+  const catalog = codexHome ? join(codexHome, "catalogs", `${split[1]}.json`) : null;
+  if (catalog && existsSync(catalog)) args.push("-c", `model_catalog_json="${catalog.replace(/\\/g, "/")}"`);
+  return [...args, flag, split[2]];
 }
 
 export class CodexRunnerAdapter {
+  codexHome() {
+    return this.env.CODEX_HOME || join(homedir(), ".codex");
+  }
+
   constructor({ env = process.env } = {}) {
     this.env = env;
     this.name = "codex";
@@ -107,14 +119,14 @@ export class CodexRunnerAdapter {
   startArgs({ cwd, sandbox, model, reasoningEffort, skipGitRepoCheck }) {
     const args = ["exec", "--json", "--cd", cwd, "--sandbox", sandbox];
     if (skipGitRepoCheck) args.push("--skip-git-repo-check");
-    args.push(...modelArgs(model));
+    args.push(...modelArgs(model, "--model", this.codexHome()));
     args.push("-c", `model_reasoning_effort="${reasoningEffort}"`, "-");
     return args;
   }
 
   resumeArgs(task) {
     const args = ["exec", "resume", "--json", "-c", `sandbox_mode="${task.sandbox}"`];
-    args.push(...modelArgs(task.model));
+    args.push(...modelArgs(task.model, "--model", this.codexHome()));
     args.push("-c", `model_reasoning_effort="${task.reasoning_effort ?? "high"}"`);
     if (task.skip_git_repo_check) args.push("--skip-git-repo-check");
     args.push(task.thread_id, "-");
@@ -125,7 +137,7 @@ export class CodexRunnerAdapter {
     const args = forkThreadId
       ? ["exec", "resume", "--json", "--skip-git-repo-check", "-c", 'sandbox_mode="read-only"']
       : ["exec", "fork", "--json", "--skip-git-repo-check", "-c", 'sandbox_mode="read-only"'];
-    args.push(...modelArgs(model, "-m"));
+    args.push(...modelArgs(model, "-m", this.codexHome()));
     args.push(forkThreadId ?? workerThreadId, "-");
     return args;
   }
