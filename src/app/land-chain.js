@@ -91,7 +91,7 @@ export async function landOneWorkerTask(taskId, options = {}) {
       return { error: "landed_commit_unreachable", task_id: taskId, reason: "the removed ancestor worktree cannot be skipped without proving its landed commit is on the current target" };
     }
   }
-  if (!task.landed_at && !task.followup_of && !ignoreAcceptance
+  if (!task.landed_at && !task.followup_of && !skipAlreadyLanded && !ignoreAcceptance
     && task.acceptance?.length && task.acceptance_results?.passed === true) {
     const drift = baseBehind(task.project_root, task.base_commit);
     if (drift.behind > 0) {
