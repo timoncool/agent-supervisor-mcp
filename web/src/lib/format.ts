@@ -1,22 +1,14 @@
 import type { Phase, Status } from "../api";
+import { common } from "../i18n/common";
+import { currentLang, tr } from "./i18n";
 
-export const STATUS_LABEL: Record<Status, string> = {
-  queued: "排队中",
-  running: "运行中",
-  completed: "已完成",
-  failed: "失败",
-  cancelled: "已取消",
-  lost: "已丢失",
-  timed_out: "已超时"
-};
+export function statusLabel(status: Status): string {
+  return tr(common, `status.${status}`);
+}
 
-export const PHASE_LABEL: Record<Exclude<Phase, null>, string> = {
-  starting: "启动中",
-  thinking: "思考中",
-  command: "执行命令",
-  editing: "改文件",
-  reporting: "汇报中"
-};
+export function phaseLabel(phase: Exclude<Phase, null>): string {
+  return tr(common, `phase.${phase}`);
+}
 
 // Status is the only thing colour encodes, in Apple system colours.
 export const STATUS_COLOR: Record<Status, { text: string; bg: string }> = {
@@ -49,12 +41,13 @@ export function relative(iso: string | null | undefined, now = Date.now()): stri
   const t = Date.parse(iso);
   if (Number.isNaN(t)) return "—";
   const s = Math.round(Math.max(0, now - t) / 1000);
-  if (s < 45) return "刚刚";
+  if (s < 45) return tr(common, "justNow");
+  const rtf = new Intl.RelativeTimeFormat(currentLang(), { numeric: "always" });
   const m = Math.round(s / 60);
-  if (m < 60) return `${m} 分钟前`;
+  if (m < 60) return rtf.format(-m, "minute");
   const h = Math.round(m / 60);
-  if (h < 36) return `${h} 小时前`;
-  return `${Math.round(h / 24)} 天前`;
+  if (h < 36) return rtf.format(-h, "hour");
+  return rtf.format(-Math.round(h / 24), "day");
 }
 
 export function clock(iso: string | null | undefined): string {
@@ -68,11 +61,11 @@ export function clock(iso: string | null | undefined): string {
 export function duration(ms: number | null | undefined): string {
   if (ms === null || ms === undefined) return "—";
   const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s} 秒`;
+  if (s < 60) return tr(common, "duration.s", { s });
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} 分 ${s % 60} 秒`;
+  if (m < 60) return tr(common, "duration.ms", { m, s: s % 60 });
   const h = Math.floor(m / 60);
-  return `${h} 小时 ${m % 60} 分`;
+  return tr(common, "duration.hm", { h, m: m % 60 });
 }
 
 export function tokens(n: number): string {
@@ -92,5 +85,5 @@ export function relativeToWorktree(path: string, worktree: string | null): strin
 }
 
 export function sessionLabel(id: string, unsessioned: boolean): string {
-  return unsessioned ? "未归入 session" : id;
+  return unsessioned ? tr(common, "unsessioned") : id;
 }

@@ -6,20 +6,32 @@ import { SessionBoard } from "./components/SessionBoard";
 import { WorkerDrawer } from "./components/WorkerDrawer";
 import { HoverProvider } from "./components/HoverCard";
 import { Resizer, readDrawerWidth } from "./components/Resizer";
+import { StatsScreen } from "./components/StatsScreen";
+import { common } from "./i18n/common";
+import { useT } from "./lib/i18n";
 
 // Location lives in the hash so a worker can be linked and the page stays a
-// single static file: #/s/<session>  or  #/s/<session>/w/<worker>
-function readHash(): { session: string | null; worker: string | null } {
-  const m = window.location.hash.match(/^#\/s\/([^/]+)(?:\/w\/([^/]+))?/);
-  return { session: m?.[1] ? decodeURIComponent(m[1]) : null, worker: m?.[2] ? decodeURIComponent(m[2]) : null };
+// single static file: #/s/<session>, #/s/<session>/w/<worker> or #/stats
+interface Route {
+  stats: boolean;
+  session: string | null;
+  worker: string | null;
 }
 
-function writeHash(session: string | null, worker: string | null) {
-  const next = session ? `#/s/${encodeURIComponent(session)}${worker ? `/w/${encodeURIComponent(worker)}` : ""}` : "";
+function readHash(): Route {
+  if (window.location.hash.startsWith("#/stats")) return { stats: true, session: null, worker: null };
+  const m = window.location.hash.match(/^#\/s\/([^/]+)(?:\/w\/([^/]+))?/);
+  return { stats: false, session: m?.[1] ? decodeURIComponent(m[1]) : null, worker: m?.[2] ? decodeURIComponent(m[2]) : null };
+}
+
+function writeHash(route: Route) {
+  const { session, worker } = route;
+  const next = route.stats ? "#/stats" : session ? `#/s/${encodeURIComponent(session)}${worker ? `/w/${encodeURIComponent(worker)}` : ""}` : "";
   if (window.location.hash !== next) window.history.pushState(null, "", next || window.location.pathname);
 }
 
 export function App() {
+  const t = useT(common);
   const [route, setRoute] = useState(readHash);
   const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
   const onResize = useCallback((fraction: number) => {
@@ -45,13 +57,19 @@ export function App() {
   const overviewError = overviewQuery.error;
   // No session chosen: open the one with live workers, else the most recent.
   const sessionId = route.session ?? overview?.sessions[0]?.id ?? null;
-  const sessionQuery = useSession(sessionId);
+  const sessionQuery = useSession(route.stats ? null : sessionId);
   const session = sessionQuery.data?.pages[0];
   const sessionError = sessionQuery.error;
 
   const go = useCallback((s: string | null, w: string | null) => {
-    writeHash(s, w);
-    setRoute({ session: s, worker: w });
+    const next = { stats: false, session: s, worker: w };
+    writeHash(next);
+    setRoute(next);
+  }, []);
+  const openStats = useCallback(() => {
+    const next = { stats: true, session: null, worker: null };
+    writeHash(next);
+    setRoute(next);
   }, []);
 
   useEffect(() => {
@@ -75,14 +93,17 @@ export function App() {
         hasMore={Boolean(overviewQuery.hasNextPage)}
         loadingMore={overviewQuery.isFetchingNextPage}
         loadMore={() => void overviewQuery.fetchNextPage()}
-        selected={sessionId}
+        selected={route.stats ? null : sessionId}
         onSelect={(id) => go(id, null)}
+        statsOpen={route.stats}
+        onOpenStats={openStats}
       />
       <main className="min-h-0 min-w-0">
-        {overviewError && <p className="t-subhead p-8 text-red">读不到后端：{overviewError.message}。确认 agent-supervisor-web 在运行。</p>}
-        {!overviewError && !session && !sessionError && <p className="t-subhead p-8 text-label-2">{overview ? "选一个 session。" : "读取中…"}</p>}
-        {sessionError && <p className="t-subhead p-8 text-red">读取 session 失败：{sessionError.message}</p>}
-        {session && sessionQuery.data && (
+        {route.stats && <StatsScreen />}
+        {!route.stats && overviewError && <p className="t-subhead p-8 text-red">{t("backendDown", { message: overviewError.message })}</p>}
+        {!route.stats && !overviewError && !session && !sessionError && <p className="t-subhead p-8 text-label-2">{overview ? t("pickSession") : t("loading")}</p>}
+        {!route.stats && sessionError && <p className="t-subhead p-8 text-red">{t("sessionError", { message: sessionError.message })}</p>}
+        {!route.stats && session && sessionQuery.data && (
           <SessionBoard
             pages={sessionQuery.data.pages}
             hasMore={Boolean(sessionQuery.hasNextPage)}

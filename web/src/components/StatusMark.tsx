@@ -1,5 +1,5 @@
 import type { Phase, Status } from "../api";
-import { PHASE_LABEL, STATUS_COLOR, STATUS_LABEL } from "../lib/format";
+import { phaseLabel, STATUS_COLOR, statusLabel } from "../lib/format";
 
 export function StatusDot({ status, size = 8 }: { status: Status; size?: number }) {
   return (
@@ -13,7 +13,7 @@ export function StatusDot({ status, size = 8 }: { status: Status; size?: number 
 
 // Text label with a dot. No pill, no fill: the dot is the only colour.
 export function StatusText({ status, phase, className = "" }: { status: Status; phase?: Phase; className?: string }) {
-  const label = status === "running" && phase ? PHASE_LABEL[phase] : STATUS_LABEL[status];
+  const label = status === "running" && phase ? phaseLabel(phase) : statusLabel(status);
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`}>
       <StatusDot status={status} />
@@ -29,7 +29,7 @@ export function StatusBar({ counts, total, height = 4 }: { counts: Partial<Recor
       {order.map((status) => {
         const n = counts[status] ?? 0;
         if (!n) return null;
-        return <span key={status} className={STATUS_COLOR[status].bg} style={{ width: `${(n / total) * 100}%` }} title={`${STATUS_LABEL[status]} ${n}`} />;
+        return <span key={status} className={STATUS_COLOR[status].bg} style={{ width: `${(n / total) * 100}%` }} title={`${statusLabel(status)} ${n}`} />;
       })}
     </span>
   );

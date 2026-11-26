@@ -9,6 +9,7 @@ export interface Segment<V extends string> {
   value: V;
   label: string;
   count?: number;
+  title?: string;
 }
 
 export function Segmented<V extends string>({ segments, value }: { segments: Segment<V>[]; value: V }) {
@@ -47,6 +48,8 @@ export function Segmented<V extends string>({ segments, value }: { segments: Seg
             key={s.value}
             value={s.value}
             data-value={s.value}
+            title={s.title}
+            aria-label={s.title}
             className="t-footnote relative z-10 flex h-8 items-center justify-center gap-1 rounded-md font-medium outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             <motion.span animate={{ color: selected ? "var(--color-label)" : "var(--color-label-2)" }} transition={{ duration: 0.18 }} className="whitespace-nowrap">
