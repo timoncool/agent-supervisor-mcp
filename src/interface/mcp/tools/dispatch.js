@@ -4,7 +4,7 @@ import { checkAcceptanceOp, createCodexFollowupWorkerOp, createCodexWorkerOp, pr
 import { defineTool, run } from "./run.js";
 import { acceptanceCommands, acceptanceShape, contextShape, dispatchOptions, group, limitsShape, only, sandboxShape, workspaceShape } from "./shapes.js";
 
-const effort = z.enum(["minimal", "low", "medium", "high"]).optional();
+const effort = z.enum(["minimal", "low", "medium", "high", "xhigh", "max"]).optional();
 
 export const preflightWorkerTool = defineTool("preflight_worker", {
   title: "Check a worker's environment before dispatch",

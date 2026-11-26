@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 const CLAUDE_NPM_ENTRY = { pkg: "@anthropic-ai/claude-code", bin: "cli.js" };
 // Claude Code has no "minimal"; the nearest it has is low.
-const EFFORTS = new Map([["minimal", "low"], ["low", "low"], ["medium", "medium"], ["high", "high"]]);
+const EFFORTS = new Map([["minimal", "low"], ["low", "low"], ["medium", "medium"], ["high", "high"], ["xhigh", "xhigh"], ["max", "max"]]);
 const quoteCommand = (path) => process.platform === "win32" ? `"${path.replace(/"/g, '""')}"` : `'${path.replace(/'/g, "'\\''")}'`;
 
 export class ClaudeRunnerAdapter {

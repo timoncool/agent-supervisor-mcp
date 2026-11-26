@@ -11,6 +11,15 @@ const quoteCommand = (path) => process.platform === "win32" ? `"${path.replace(/
 
 const CODEX_NPM_ENTRY = { pkg: "@openai/codex", bin: "bin/codex.js" };
 
+// "provider/model" selects a model_providers entry of the Codex config, so one
+// stored model string carries the provider through dispatch, resume and side chat.
+export function modelArgs(model, flag = "--model") {
+  if (!model) return [];
+  const split = String(model).match(/^([a-z0-9_-]+)\/(.+)$/);
+  if (!split) return [flag, model];
+  return ["-c", `model_provider="${split[1]}"`, flag, split[2]];
+}
+
 export class CodexRunnerAdapter {
   constructor({ env = process.env } = {}) {
     this.env = env;
@@ -98,14 +107,14 @@ export class CodexRunnerAdapter {
   startArgs({ cwd, sandbox, model, reasoningEffort, skipGitRepoCheck }) {
     const args = ["exec", "--json", "--cd", cwd, "--sandbox", sandbox];
     if (skipGitRepoCheck) args.push("--skip-git-repo-check");
-    if (model) args.push("--model", model);
+    args.push(...modelArgs(model));
     args.push("-c", `model_reasoning_effort="${reasoningEffort}"`, "-");
     return args;
   }
 
   resumeArgs(task) {
     const args = ["exec", "resume", "--json", "-c", `sandbox_mode="${task.sandbox}"`];
-    if (task.model) args.push("--model", task.model);
+    args.push(...modelArgs(task.model));
     args.push("-c", `model_reasoning_effort="${task.reasoning_effort ?? "high"}"`);
     if (task.skip_git_repo_check) args.push("--skip-git-repo-check");
     args.push(task.thread_id, "-");
@@ -116,7 +125,7 @@ export class CodexRunnerAdapter {
     const args = forkThreadId
       ? ["exec", "resume", "--json", "--skip-git-repo-check", "-c", 'sandbox_mode="read-only"']
       : ["exec", "fork", "--json", "--skip-git-repo-check", "-c", 'sandbox_mode="read-only"'];
-    if (model) args.push("-m", model);
+    args.push(...modelArgs(model, "-m"));
     args.push(forkThreadId ?? workerThreadId, "-");
     return args;
   }

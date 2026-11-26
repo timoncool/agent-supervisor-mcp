@@ -43,7 +43,7 @@ export const preflightCodexWorkerOp = {
       cwd: z.string().min(1),
       sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).default("workspace-write"),
       model: z.string().optional(),
-      reasoningEffort: z.enum(["minimal", "low", "medium", "high"]).default("high"),
+      reasoningEffort: z.enum(["minimal", "low", "medium", "high", "xhigh", "max"]).default("high"),
       skipGitRepoCheck: z.boolean().default(true),
       ownedPaths: z.array(z.string().min(1)),
       forbid: z.array(z.string().min(1)).max(100).optional(),
@@ -107,7 +107,7 @@ export const createCodexWorkerOp = {
       session_note: z.string().min(1).max(2000).optional(),
       sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).default("workspace-write"),
       model: z.string().optional(),
-      reasoningEffort: z.enum(["minimal", "low", "medium", "high"]).default("high"),
+      reasoningEffort: z.enum(["minimal", "low", "medium", "high", "xhigh", "max"]).default("high"),
       skipGitRepoCheck: z.boolean().default(true),
       // Empty is the promise that nothing lands: a read-only verifier, or a
       // research worker that reads, fetches and reports but merges nothing.
@@ -172,7 +172,7 @@ export const createCodexFollowupWorkerOp = {
       cwd: z.string().optional(),
       sandbox: z.enum(["read-only", "workspace-write", "danger-full-access"]).optional(),
       model: z.string().optional(),
-      reasoningEffort: z.enum(["minimal", "low", "medium", "high"]).default("high"),
+      reasoningEffort: z.enum(["minimal", "low", "medium", "high", "xhigh", "max"]).default("high"),
       ownedPaths: z.array(z.string().min(1)).optional(),
       forbid: z.array(z.string().min(1)).max(100).optional(),
       allowedCommands: z.array(z.string().min(1)).max(100).optional(),
