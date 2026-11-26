@@ -11,6 +11,7 @@ import { updateWorkItemDelivery } from "../infra/store/records.js";
 import { isSettled } from "./settled.js";
 import { landWorker } from "./landing.js";
 import { existsSync } from "node:fs";
+import { baseBehind } from "../infra/worktree.js";
 
 export const git = (cwd, args) => runGit(cwd, args, { timeout: 60000 });
 
@@ -88,6 +89,19 @@ export async function landOneWorkerTask(taskId, options = {}) {
       return { task_id: taskId, title: task.title, status: task.status, branch: branchOf(task), skipped: "already_landed", landed_at: task.landed_at, landed_head: task.landed_head };
     } catch {
       return { error: "landed_commit_unreachable", task_id: taskId, reason: "the removed ancestor worktree cannot be skipped without proving its landed commit is on the current target" };
+    }
+  }
+  if (!task.landed_at && !task.followup_of && !ignoreAcceptance
+    && task.acceptance?.length && task.acceptance_results?.passed === true) {
+    const drift = baseBehind(task.project_root, task.base_commit);
+    if (drift.behind > 0) {
+      return {
+        error: "acceptance_stale",
+        task_id: taskId,
+        behind: drift.behind,
+        ref: drift.ref,
+        reason: `acceptance passed on a base ${drift.behind} commit(s) behind ${drift.ref}; resume_worker with rebase_onto: "HEAD" to re-run it on current code, or pass ignore_acceptance only when the user said so`
+      };
     }
   }
   const outcome = landWorker(task, { onto, commitMessage, ignoreAcceptance, allowOutsideOwned });

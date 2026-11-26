@@ -22,8 +22,23 @@ const PATCH_ID_MAX_BUFFER = 256 * 1024 * 1024;
 const FALLBACK_IDENTITY = { name: "agent-supervisor", email: "agent-supervisor@localhost" };
 const identityCache = new Map();
 
+function gitResolvesIdentity(cwd) {
+  try {
+    runGit(cwd, ["var", "GIT_AUTHOR_IDENT"], { stderr: "ignore", timeout: 10000 });
+    runGit(cwd, ["var", "GIT_COMMITTER_IDENT"], { stderr: "ignore", timeout: 10000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function identityEnv(cwd) {
   if (identityCache.has(cwd)) return identityCache.get(cwd);
+  // git derives a name from the OS account when user.name is unset (Windows display name, passwd gecos).
+  if (gitResolvesIdentity(cwd)) {
+    identityCache.set(cwd, {});
+    return identityCache.get(cwd);
+  }
   let name = "";
   let email = "";
   try {
