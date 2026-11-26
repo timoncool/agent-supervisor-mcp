@@ -9,6 +9,7 @@ import { attachToTurn, endSideSession, runSideTurn, sideSessionState, stopSideTu
 import { supervisorRoot } from "../../infra/paths.js";
 import { getTask } from "../../infra/store/tasks.js";
 import { checkForUpdate } from "../../infra/update/update-check.js";
+import { workerStats } from "../../infra/store/stats.js";
 import { events, overview, pageParams, session, worker } from "./views.js";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
@@ -175,6 +176,10 @@ async function route(req, res) {
   if (req.method !== "GET") return json(res, 405, { error: "method_not_allowed" });
 
   if (parts[1] === "overview" && parts.length === 2) return json(res, 200, await overview(pageParams(url, 20)));
+  if (parts[1] === "stats" && parts.length === 2) {
+    const days = Math.min(365, Math.max(1, Number(url.searchParams.get("days") ?? 30) || 30));
+    return json(res, 200, workerStats({ days }));
+  }
   if (parts[1] === "version" && parts.length === 2) {
     return json(res, 200, await checkForUpdate({ force: url.searchParams.get("force") === "1" }));
   }

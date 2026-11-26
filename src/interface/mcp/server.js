@@ -10,6 +10,7 @@ import { cleanupTool, landWorkerTool, verifyPushTool } from "./tools/deliver.js"
 import { factsTool, getArtifactTool, reviewTool } from "./tools/optional.js";
 import { askWorkerTool, describeSessionTool, findWorksTool, getWorkerDiffTool, getWorkerTool } from "./tools/read.js";
 import { pollWorkersTool, waitWorkersTool } from "./tools/track.js";
+import { noteWorkerTool } from "./tools/lead.js";
 
 installCrashGuard("mcp-server");
 
@@ -27,7 +28,7 @@ const TOOLS = [
   pollWorkersTool, waitWorkersTool,
   getWorkerTool, getWorkerDiffTool, askWorkerTool,
   landWorkerTool, verifyPushTool, cleanupTool,
-  findWorksTool, describeSessionTool
+  findWorksTool, describeSessionTool, noteWorkerTool
 ];
 // The fact ledger, independent review and raw artifacts are rarely needed and
 // cost context in every session, so they are opt-in.
