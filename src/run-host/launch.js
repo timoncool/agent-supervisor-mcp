@@ -5,6 +5,7 @@ import { findOutsideOwnedChanges } from "../domain/owned-changes.js";
 import { buildGuardPreamble } from "../domain/prompt.js";
 import { withWorkerToolPath } from "../domain/worker-env.js";
 import { cacheRoots } from "../infra/sandbox-roots.js";
+import { inlineContextFiles } from "../infra/context-files.js";
 import { runnerOf } from "../runners/registry.js";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -45,5 +46,7 @@ export function buildLaunch({ record, args, prompt, outputSchema, externalBefore
     AGENT_SUPERVISOR_STAGE_CLI: stageCli,
     AGENT_SUPERVISOR_ACCEPTANCE_CLI: acceptanceCli,
     AGENT_SUPERVISOR_RUN: String((record.run_count ?? 0) + 1), AGENT_SUPERVISOR_GUARD_POLICY: JSON.stringify(guardPolicy) });
-  return { guardedArgs, prompt: `${buildGuardPreamble(guardPolicy)}\n\n${prompt}`, env };
+  const inlined = inlineContextFiles(record.input_context?.context);
+  const body = inlined ? `${prompt}\n\n${inlined}` : prompt;
+  return { guardedArgs, prompt: `${buildGuardPreamble(guardPolicy)}\n\n${body}`, env };
 }
