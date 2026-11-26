@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import "../../app/compose.js";
 import { installCrashGuard } from "../../infra/crash-guard.js";
-import { syncSkills } from "../../infra/skill-sync.js";
 import { packageVersion } from "./meta.js";
-import { refreshUpdateState, UPDATE_RECHECK_MS } from "./update-state.js";
+import { refreshUpdateState } from "./update-state.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { cancelWorkerTool, createWorkerTool, preflightWorkerTool, resumeWorkerTool } from "./tools/dispatch.js";
@@ -20,30 +19,6 @@ const server = new McpServer({
 });
 
 refreshUpdateState();
-setInterval(() => refreshUpdateState({ force: true }), UPDATE_RECHECK_MS).unref();
-
-// The skill describes this tool surface, so it moves with the server: a
-// server fetched by `npx -y agent-supervisor-mcp@latest` never ran postinstall,
-// and a global install only synced the skill on the day it was installed.
-// Runs in the background; a client that cannot write its skill directory
-// only costs a line on stderr.
-if (!process.env.AGENT_SUPERVISOR_SKIP_SKILL_SYNC) {
-  syncSkills()
-    .then((result) => {
-      const changed = [...result.installed, ...result.updated];
-      if (changed.length > 0) {
-        process.stderr.write(
-          `[agent-supervisor] skill synced for ${changed.join(", ")}; a session that already loaded the skill keeps the old text until it loads it again\n`
-        );
-      }
-      for (const failure of result.failed) {
-        process.stderr.write(`[agent-supervisor] skill sync failed: ${failure}\n`);
-      }
-    })
-    .catch((error) => {
-      process.stderr.write(`[agent-supervisor] skill sync failed: ${error.message}\n`);
-    });
-}
 
 // The order is the order tools/list returns, which is the order a model reads
 // them in: the path of a batch from preflight to cleanup.

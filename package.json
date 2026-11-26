@@ -39,7 +39,6 @@
     "LICENSE"
   ],
   "scripts": {
-    "postinstall": "node ./src/interface/bin/setup.js --auto --quiet",
     "setup": "node ./src/interface/bin/setup.js",
     "start": "node ./src/mcp-server.js",
     "monitor": "tsx ./src/interface/bin/monitor.jsx",

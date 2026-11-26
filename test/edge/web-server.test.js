@@ -109,10 +109,11 @@ test("a browser request that changes something is refused unless it comes from t
   assert.equal((await web.get("/api/overview", { headers: { origin: "http://evil.example" } })).status, 200, "reads stay open");
 });
 
-test("the version endpoint answers even with the update check disabled", async () => {
+test("the version endpoint describes the installed copy without contacting a registry", async () => {
   const { status, body } = await web.get("/api/version");
   assert.equal(status, 200);
-  assert.equal(body.source, "disabled");
+  assert.equal(body.source, "local");
+  assert.equal(body.update_available, false);
   assert.equal(typeof body.installed.version, "string");
 });
 
