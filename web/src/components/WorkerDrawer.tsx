@@ -3,7 +3,9 @@ import { Tabs } from "@base-ui-components/react/tabs";
 import { motion } from "motion/react";
 import { X } from "@phosphor-icons/react";
 import { useEvents, useWorker, type WorkerDetail } from "../api";
+import { board } from "../i18n/board";
 import { clock, duration, relativeToWorktree, tokens } from "../lib/format";
+import { tr } from "../lib/i18n";
 import { StatusText } from "./StatusMark";
 import { EventStream } from "./EventStream";
 import { Markdown } from "./Markdown";
@@ -44,7 +46,7 @@ function Notices({ text }: { text: string }) {
     <details className="group mt-4 px-1">
       <summary className="t-footnote cursor-pointer list-none text-label-2 hover:text-label">
         <span className="mr-1 inline-block transition-transform group-open:rotate-90">▸</span>
-        Codex 提示 {lines.length} 条
+        {tr(board, "codexNotices", { n: lines.length })}
       </summary>
       <ul className="t-footnote mt-1.5 space-y-1 pl-4 text-label-2">
         {lines.map((l) => <li key={l} className="list-disc">{l}</li>)}
@@ -58,15 +60,15 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function Reports({ worker }: { worker: WorkerDetail }) {
-  if (worker.reports.length === 0) return <Empty>这路 worker 还没有汇报。</Empty>;
+  if (worker.reports.length === 0) return <Empty>{tr(board, "drawer.noReports")}</Empty>;
   const list = [...worker.reports].reverse();
   return (
     <div className="space-y-3">
       {list.map((text, i) => (
         <article key={i} className="inset px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="group-header">{i === 0 ? "最终汇报" : `之前的汇报 ${list.length - i}`}</span>
-            <span className="t-caption ml-auto text-label-3">{text.length} 字</span>
+            <span className="group-header">{i === 0 ? tr(board, "drawer.finalReport") : tr(board, "drawer.earlierReport", { n: list.length - i })}</span>
+            <span className="t-caption ml-auto text-label-3">{tr(board, "chars", { n: text.length })}</span>
           </div>
           <Markdown text={text} className="mt-2" />
         </article>
@@ -76,7 +78,7 @@ function Reports({ worker }: { worker: WorkerDetail }) {
 }
 
 function Changes({ worker }: { worker: WorkerDetail }) {
-  if (worker.changed_files.length === 0) return <Empty>没有改动：worktree 没有未提交的文件，分支上也没有新提交。</Empty>;
+  if (worker.changed_files.length === 0) return <Empty>{tr(board, "drawer.noChanges")}</Empty>;
   return (
     <ul className="inset divide-y divide-separator-soft px-4">
       {worker.changed_files.map((file) => (
@@ -89,7 +91,7 @@ function Changes({ worker }: { worker: WorkerDetail }) {
 }
 
 function Commands({ worker }: { worker: WorkerDetail }) {
-  if (worker.commands.length === 0) return <Empty>没跑过命令。</Empty>;
+  if (worker.commands.length === 0) return <Empty>{tr(board, "drawer.noCommands")}</Empty>;
   const list = [...worker.commands].reverse();
   return (
     <ol className="inset divide-y divide-separator-soft px-4">
@@ -110,13 +112,13 @@ function Commands({ worker }: { worker: WorkerDetail }) {
 }
 
 const TABS = [
-  { value: "overview", label: "概览" },
-  { value: "report", label: "汇报" },
-  { value: "changes", label: "改动" },
-  { value: "commands", label: "命令" },
-  { value: "events", label: "事件" },
-  { value: "prompt", label: "任务书" },
-  { value: "ask", label: "旁问" }
+  { value: "overview" },
+  { value: "report" },
+  { value: "changes" },
+  { value: "commands" },
+  { value: "events" },
+  { value: "prompt" },
+  { value: "ask" }
 ] as const;
 type TabValue = (typeof TABS)[number]["value"];
 
@@ -139,9 +141,9 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
       exit={{ x: 32, opacity: 0 }}
       transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1] }}
       className="flex h-full min-h-0 flex-col border-l border-separator-soft bg-bg"
-      aria-label="worker 详情"
+      aria-label={tr(board, "drawer.label")}
     >
-      {!worker && <p className="t-subhead p-8 text-label-2">{error ? `读取失败：${error.message}` : "读取中…"}</p>}
+      {!worker && <p className="t-subhead p-8 text-label-2">{error ? tr(board, "loadFailed", { message: error.message }) : tr(board, "loading")}</p>}
       {worker && (
         <>
           {/* 1. Identity: who this worker is and what it is doing now. Fixed. */}
@@ -152,7 +154,7 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
                 <h2 className="t-title2 mt-1">{worker.title}</h2>
                 {worker.goal && <p className="t-subhead mt-1 line-clamp-2 text-label-2" title={worker.goal}>{worker.goal}</p>}
               </div>
-              <button type="button" onClick={onClose} aria-label="关闭" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-fill text-label-2 hover:bg-fill-2">
+              <button type="button" onClick={onClose} aria-label={tr(board, "close")} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-fill text-label-2 hover:bg-fill-2">
                 <X size={14} weight="bold" />
               </button>
             </div>
@@ -160,26 +162,26 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
               <p className="t-footnote mono mt-3 truncate text-orange" title={worker.current_action}>{worker.current_action}</p>
             )}
             {worker.error && (worker.status === "running" || worker.status === "queued"
-              ? <p className="t-footnote mt-3 text-label-2">上次运行：{worker.error}</p>
+              ? <p className="t-footnote mt-3 text-label-2">{tr(board, "drawer.lastRun", { error: worker.error })}</p>
               : <p className="t-footnote mt-3 rounded-lg bg-red/10 px-3 py-1.5 text-red">{worker.error}</p>)}
 
             {/* 2. The numbers that matter, one line. */}
             <div className="t-footnote mono tabular mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-label-2">
-              <span title="耗时">{duration(worker.duration_ms)}</span>
-              <span title="改动的文件数（worktree 真实 diff）">{worker.changed_files.length} 文件</span>
-              <span title="跑过的命令数">{worker.command_count} 命令</span>
-              <span title={`输入 ${worker.usage.input_tokens}（缓存命中 ${worker.usage.cached_input_tokens}）/ 输出 ${worker.usage.output_tokens}`}>
+              <span title={tr(board, "duration")}>{duration(worker.duration_ms)}</span>
+              <span title={tr(board, "drawer.filesTitle")}>{tr(board, "drawer.files", { n: worker.changed_files.length })}</span>
+              <span title={tr(board, "drawer.commandsTitle")}>{tr(board, "drawer.commands", { n: worker.command_count })}</span>
+              <span title={tr(board, "tokensTitle", { in: worker.usage.input_tokens, cached: worker.usage.cached_input_tokens, out: worker.usage.output_tokens })}>
                 {tokens(worker.usage.input_tokens)} in · {tokens(worker.usage.output_tokens)} out
               </span>
-              {worker.exit_code !== null && <span title="退出码">exit {worker.exit_code}</span>}
-              {worker.run_count > 1 && <span>第 {worker.run_count} 次运行</span>}
+              {worker.exit_code !== null && <span title={tr(board, "exitCode")}>exit {worker.exit_code}</span>}
+              {worker.run_count > 1 && <span>{tr(board, "drawer.runN", { n: worker.run_count })}</span>}
             </div>
           </header>
 
           {/* 3. Tabs fixed, content below scrolls. The side chat owns its own scroll. */}
           <Tabs.Root value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex min-h-0 flex-1 flex-col">
             <div className="mx-6 mt-3">
-              <Segmented value={tab} segments={TABS.map((t) => ({ value: t.value, label: t.label, count: counts[t.value] }))} />
+              <Segmented value={tab} segments={TABS.map((t) => ({ value: t.value, label: tr(board, `tab.${t.value}`), count: counts[t.value] }))} />
             </div>
 
             {/* The side chat stays mounted while the drawer is open, so
@@ -191,37 +193,37 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
               <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8 pt-3">
                 <PanelFade id={tab}>
                 <Tabs.Panel value="overview">
-                  <Group title="运行">
-                    <KV label="开始" mono>{clock(worker.started_at ?? worker.created_at)}</KV>
-                    <KV label="结束" mono>{clock(worker.completed_at)}</KV>
-                    <KV label="耗时">{duration(worker.duration_ms)}</KV>
-                    <KV label="退出码" mono>{worker.exit_code ?? "—"}</KV>
-                    <KV label="运行次数" mono>{worker.run_count}</KV>
+                  <Group title={tr(board, "drawer.groupRun")}>
+                    <KV label={tr(board, "drawer.started")} mono>{clock(worker.started_at ?? worker.created_at)}</KV>
+                    <KV label={tr(board, "drawer.finished")} mono>{clock(worker.completed_at)}</KV>
+                    <KV label={tr(board, "duration")}>{duration(worker.duration_ms)}</KV>
+                    <KV label={tr(board, "exitCode")} mono>{worker.exit_code ?? "—"}</KV>
+                    <KV label={tr(board, "drawer.runCount")} mono>{worker.run_count}</KV>
                     {worker.pid && worker.status === "running" && <KV label="pid" mono>{worker.pid}</KV>}
                   </Group>
-                  <Group title="模型与会话">
-                    <KV label="模型" mono>{worker.model ?? "默认"}</KV>
-                    <KV label="tokens" mono title={`输入 ${worker.usage.input_tokens}（缓存命中 ${worker.usage.cached_input_tokens}）/ 输出 ${worker.usage.output_tokens} / ${worker.usage.turns} turn`}>
+                  <Group title={tr(board, "drawer.groupModel")}>
+                    <KV label={tr(board, "model")} mono>{worker.model ?? tr(board, "drawer.defaultModel")}</KV>
+                    <KV label="tokens" mono title={`${tr(board, "tokensTitle", { in: worker.usage.input_tokens, cached: worker.usage.cached_input_tokens, out: worker.usage.output_tokens })} / ${worker.usage.turns} turn`}>
                       {tokens(worker.usage.input_tokens)} in · {tokens(worker.usage.output_tokens)} out
                     </KV>
-                    <KV label="沙箱" mono>{worker.sandbox}</KV>
+                    <KV label={tr(board, "drawer.sandbox")} mono>{worker.sandbox}</KV>
                     <KV label="thread" mono title={worker.thread_id ?? ""}>{worker.thread_id ?? "—"}</KV>
                     <KV label="worker" mono title={worker.id}>{worker.id}</KV>
                     <KV label="session" mono>{worker.session_id ?? "—"}</KV>
                   </Group>
-                  <Group title="代码">
-                    <KV label="分支" mono title={worker.branch ?? ""}>{worker.branch ?? "—"}</KV>
-                    <KV label="基线" mono title={worker.base_commit ?? ""}>{worker.base_commit ? worker.base_commit.slice(0, 12) : "—"}</KV>
+                  <Group title={tr(board, "drawer.groupCode")}>
+                    <KV label={tr(board, "branch")} mono title={worker.branch ?? ""}>{worker.branch ?? "—"}</KV>
+                    <KV label={tr(board, "drawer.base")} mono title={worker.base_commit ?? ""}>{worker.base_commit ? worker.base_commit.slice(0, 12) : "—"}</KV>
                     <KV label="worktree" mono title={worker.worktree_path ?? ""}>{worker.worktree_path ?? "—"}</KV>
-                    <KV label="项目" mono title={worker.project_root}>{worker.project_root}</KV>
+                    <KV label={tr(board, "drawer.project")} mono title={worker.project_root}>{worker.project_root}</KV>
                     {parent && (
-                      <KV label={worker.followup_of ? "接续自" : "续跑自"} mono>
+                      <KV label={tr(board, worker.followup_of ? "drawer.followupOf" : "drawer.resumedFrom")} mono>
                         <button type="button" className="text-blue" onClick={() => onOpenWorker(parent)}>{parent}</button>
                       </KV>
                     )}
                   </Group>
                   {worker.owned_paths.length > 0 && (
-                    <Group title="负责的路径">
+                    <Group title={tr(board, "ownedPaths")}>
                       {worker.owned_paths.map((p) => (
                         <div key={p} className="t-footnote mono flex min-h-[32px] items-center py-1 text-label" title={p}><span className="truncate">{relativeToWorktree(p, worker.project_root)}</span></div>
                       ))}
