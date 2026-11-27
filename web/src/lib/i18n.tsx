@@ -1,6 +1,4 @@
 import { createContext, Fragment, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Tabs } from "@base-ui-components/react/tabs";
-import { Segmented } from "../components/Segmented";
 
 export type Lang = "ru" | "en" | "zh";
 export const LANGS: Lang[] = ["ru", "en", "zh"];
@@ -57,24 +55,34 @@ export function plural(n: number, forms: { one: string; few?: string; many?: str
 
 interface LangState {
   lang: Lang;
-  setLang: (lang: Lang) => void;
+  setLang: (lang: Lang, options?: { refocus?: boolean }) => void;
 }
 
 const LangContext = createContext<LangState>({ lang: current, setLang: () => {} });
 
+// The tree remounts on a language change, so the control that made the change
+// is a new node: focus is handed back to it by id.
+let refocusAfterChange = false;
+export const LANG_TRIGGER_ID = "lang-select-trigger";
+
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(current);
-  const setLang = useCallback((next: Lang) => {
+  const setLang = useCallback((next: Lang, options: { refocus?: boolean } = {}) => {
     current = next;
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
       // per-viewer convenience only
     }
+    refocusAfterChange = options.refocus === true;
     setLangState(next);
   }, []);
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : lang;
+    if (refocusAfterChange) {
+      refocusAfterChange = false;
+      document.getElementById(LANG_TRIGGER_ID)?.focus();
+    }
   }, [lang]);
   const value = useMemo(() => ({ lang, setLang }), [lang, setLang]);
   return (
@@ -93,17 +101,8 @@ export function useT<M extends Messages>(dict: Dictionary<M>): (key: keyof M & s
   return useCallback((key: keyof M & string, params?: Params) => tr(dict, key, params, lang), [dict, lang]);
 }
 
-const NAMES: Record<Lang, { short: string; full: string }> = {
-  ru: { short: "RU", full: "Русский" },
-  en: { short: "EN", full: "English" },
-  zh: { short: "中文", full: "中文" }
+export const LANG_NAMES: Record<Lang, { full: string }> = {
+  ru: { full: "Русский" },
+  en: { full: "English" },
+  zh: { full: "中文" }
 };
-
-export function LangSwitch() {
-  const { lang, setLang } = useLang();
-  return (
-    <Tabs.Root value={lang} onValueChange={(value) => setLang(value as Lang)} aria-label="Language / Язык / 语言">
-      <Segmented segments={LANGS.map((value) => ({ value, label: NAMES[value].short, title: NAMES[value].full }))} value={lang} />
-    </Tabs.Root>
-  );
-}

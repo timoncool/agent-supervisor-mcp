@@ -4,7 +4,8 @@ import { relative, sessionLabel } from "../lib/format";
 import { StatusDot } from "./StatusMark";
 import { ChartBar } from "@phosphor-icons/react";
 import { common } from "../i18n/common";
-import { LangSwitch, useT } from "../lib/i18n";
+import { useT } from "../lib/i18n";
+import { LangSelect } from "./LangSelect";
 
 interface Props {
   pages: Overview[] | undefined;
@@ -46,7 +47,7 @@ function Row({ session, active, onSelect }: { session: SessionSummary; active: b
 // The version line at the foot of the sidebar. Quiet when current; a
 // yellow notice with the install command when a newer build is published
 // or the installed files do not match the published tarball.
-// The language switch sits on the same line.
+// The language control sits on the same line.
 function VersionFooter() {
   const t = useT(common);
   const { data } = useVersion();
@@ -57,8 +58,8 @@ function VersionFooter() {
         {data && <span className="mono">v{data.installed.version}</span>}
         {data?.latest && !attention && <span className="truncate">{t("version.current")}</span>}
         {data?.source === "offline" && <span className="truncate" title={data.error ?? ""}>{t("version.offline")}</span>}
-        <div className="ml-auto w-[132px] shrink-0">
-          <LangSwitch />
+        <div className="ml-auto">
+          <LangSelect />
         </div>
       </div>
       {data && attention && (
