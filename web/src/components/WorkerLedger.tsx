@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
 import type { SessionDetail, WorkerRow } from "../api";
+import { board } from "../i18n/board";
+import { tr } from "../lib/i18n";
 import { useLoadMore } from "../lib/useLoadMore";
 import { clock, duration, plain, relative } from "../lib/format";
 import { StatusText } from "./StatusMark";
@@ -25,13 +27,13 @@ function Row({ worker, active, onSelect, index }: { worker: WorkerRow; active: b
   // The dispatcher's own checks: one glyph, since this is the one place the
   // user looks instead of reading logs.
   const acceptance = worker.acceptance === "passed"
-    ? { glyph: "✓", cls: "text-green", title: "验收通过" }
+    ? { glyph: "✓", cls: "text-green", title: tr(board, "ledger.passed") }
     : worker.acceptance === "failed"
-      ? { glyph: "✗", cls: "text-red", title: "验收失败" }
+      ? { glyph: "✗", cls: "text-red", title: tr(board, "ledger.failed") }
       : worker.acceptance === "running"
-        ? { glyph: "…", cls: "text-orange", title: "验收中" }
+        ? { glyph: "…", cls: "text-orange", title: tr(board, "ledger.running") }
         : worker.acceptance
-          ? { glyph: "?", cls: "text-label-3", title: `验收${worker.acceptance === "interrupted" ? "中断" : "取消"}` }
+          ? { glyph: "?", cls: "text-label-3", title: tr(board, worker.acceptance === "interrupted" ? "ledger.interrupted" : "ledger.cancelled") }
           : null;
   return (
     <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: Math.min(index, 10) * 0.025 }}>
@@ -50,13 +52,13 @@ function Row({ worker, active, onSelect, index }: { worker: WorkerRow; active: b
             <div className="t-headline">{worker.title}</div>
             <CardRow label="Goal">{worker.goal ?? "—"}</CardRow>
             {worker.owned_paths.length > 0 && (
-              <CardRow label="负责的路径">
+              <CardRow label={tr(board, "ownedPaths")}>
                 <ul className="mono space-y-0.5">{worker.owned_paths.map((p) => <li key={p} className="truncate" title={p}>{relativeToWorktree(p, worker.project_root)}</li>)}</ul>
               </CardRow>
             )}
-            {worker.branch && <CardRow label="分支"><span className="mono">{worker.branch}</span>{worker.base_commit && <span className="mono text-label-2"> ← {worker.base_commit.slice(0, 7)}</span>}</CardRow>}
-            {worker.depends_on.length > 0 && <CardRow label="依赖"><span className="mono">{worker.depends_on.map((d) => shortId(d)).join(", ")}</span></CardRow>}
-            {worker.model && <CardRow label="模型"><span className="mono">{worker.model}</span></CardRow>}
+            {worker.branch && <CardRow label={tr(board, "branch")}><span className="mono">{worker.branch}</span>{worker.base_commit && <span className="mono text-label-2"> ← {worker.base_commit.slice(0, 7)}</span>}</CardRow>}
+            {worker.depends_on.length > 0 && <CardRow label={tr(board, "ledger.dependsOn")}><span className="mono">{worker.depends_on.map((d) => shortId(d)).join(", ")}</span></CardRow>}
+            {worker.model && <CardRow label={tr(board, "model")}><span className="mono">{worker.model}</span></CardRow>}
           </HoverCard>
 
           <span className={`t-footnote mt-0.5 block truncate ${running ? "mono text-orange" : worker.error ? "text-red" : "text-label-2"}`} title={secondary ?? undefined}>
@@ -81,12 +83,12 @@ export function WorkerLedger({ pages, hasMore, loadingMore, loadMore, selected, 
   return (
     <section className="inset overflow-hidden">
       <div className={`grid ${GRID} gap-x-4 border-b border-separator-soft px-4 py-2`}>
-        <span className="t-footnote text-label-2">状态</span>
+        <span className="t-footnote text-label-2">{tr(board, "ledger.status")}</span>
         <span className="t-footnote text-label-2">Worker</span>
-        <span className="t-footnote text-right text-label-2">耗时</span>
-        <span className="t-footnote text-right text-label-2" title="worktree 里改过的文件数，含已 commit 的">文件</span>
-        <span className="t-footnote text-right text-label-2">命令</span>
-        <span className="t-footnote text-right text-label-2">更新</span>
+        <span className="t-footnote text-right text-label-2">{tr(board, "duration")}</span>
+        <span className="t-footnote text-right text-label-2" title={tr(board, "ledger.filesTitle")}>{tr(board, "ledger.files")}</span>
+        <span className="t-footnote text-right text-label-2">{tr(board, "ledger.commands")}</span>
+        <span className="t-footnote text-right text-label-2">{tr(board, "ledger.updated")}</span>
       </div>
       <ol className="divide-y divide-separator-soft">
         {workers.map((worker, index) => (
@@ -94,7 +96,7 @@ export function WorkerLedger({ pages, hasMore, loadingMore, loadMore, selected, 
         ))}
       </ol>
       <div ref={sentinel} className="t-caption border-t border-separator-soft px-4 py-2.5 text-center text-label-3">
-        {hasMore ? (loadingMore ? "加载中…" : `已显示 ${workers.length} / ${total}，继续滚动加载`) : `共 ${total} 路`}
+        {hasMore ? (loadingMore ? tr(board, "ledger.loadingMore") : tr(board, "ledger.shown", { shown: workers.length, total })) : tr(board, "ledger.total", { n: total })}
       </div>
     </section>
   );
