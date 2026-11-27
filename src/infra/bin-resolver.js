@@ -70,6 +70,7 @@ const listSeparator = (platform) => (isWindows(platform) ? ";" : ":");
  * @typedef {Object} NpmEntryHint
  * @property {string} pkg  npm package name, e.g. "@openai/codex"
  * @property {string} bin  entry path inside the package, e.g. "bin/codex.js"
+ * @property {string[]} [native]  native executable paths inside the package, probed before bin
  */
 
 /**

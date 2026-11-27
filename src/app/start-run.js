@@ -89,9 +89,14 @@ async function startHostInSharedConsole(job, hostLogPath) {
   const base = hostLogPath.replace(/\.host\.log$/, "");
   const jobPath = `${base}.job.json`;
   const ackPath = `${base}.ack.json`;
+  const entry = fileURLToPath(new URL("../run-host/entry.js", import.meta.url));
+  for (const path of [process.execPath, entry, jobPath, ackPath]) {
+    if (/[%&^|<>"]/.test(path)) {
+      return failedStart(job.record, `run host cannot launch: path contains a cmd.exe special character (% & ^ | < > "): ${path}`);
+    }
+  }
   rmSync(ackPath, { force: true });
   writeFileSync(jobPath, JSON.stringify(job));
-  const entry = fileURLToPath(new URL("../run-host/entry.js", import.meta.url));
   const line = `/d /c start "" /b "${process.execPath}" "${entry}" --run-host --job-file "${jobPath}" --ack-file "${ackPath}"`;
   let hostLogFd;
   try {

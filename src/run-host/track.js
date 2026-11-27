@@ -97,9 +97,9 @@ export async function trackRunInHost({ record, args, prompt, logPath, spawnOptio
 
   const { child, spawnError, earlyOutput } = await spawnAndAwaitStart(target, launch.guardedArgs, {
     stdio: ["pipe", "pipe", "pipe"],
-    env: launch.env(),
     windowsHide: hideChildConsole,
-    ...spawnOptions
+    ...spawnOptions,
+    env: { ...launch.env(), ...spawnOptions.env, ...target.env }
   });
   if (spawnError) return failedStart(record, `failed to spawn ${target.cmd}: ${spawnError.message}`);
 
