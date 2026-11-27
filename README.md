@@ -38,6 +38,7 @@ Bug fixes go back upstream as pull requests.
 
 ## Features
 
+- **Keeps working when the ChatGPT limit runs out** — switch workers to the DeepSeek API with one argument, same worktrees, acceptance and landing ([how](#workers-on-deepseek))
 - **Parallel workers without collisions** — one git worktree and branch per worker; `owned_paths` are checked for overlap before a worker starts
 - **Acceptance the worker cannot fake** — the server runs your test commands after the worker exits and refuses to land a failed or stale result
 - **Small footprint in the lead's context** — worker logs stay on disk; the lead reads a compact summary of every worker (up to 7,000 bytes) and pages through diffs on demand
@@ -46,7 +47,6 @@ Bug fixes go back upstream as pull requests.
 - **Board in three languages** — English, Russian, Chinese; picked from the browser, switchable in the footer
 - **CLI over the same tools** — `agent-supervisor <tool> --args '<json>'` batches actions in one shell call and always runs the current code
 - **Lead decisions on record** — `note_worker` stores the verdict; `review_ok` is refused until acceptance has passed
-- **Other providers through Codex** — `model: "deepseek/deepseek-flash"` uses a `model_providers` entry; `reasoning_effort` up to `max`
 - **No background self-update** — runners load only from a file you name, never by npm package name
 
 ## Quick Start
@@ -115,6 +115,32 @@ The board runs at `http://127.0.0.1:7877` (`agent-supervisor-web`): every batch,
 agent-supervisor poll_workers --args '{}'
 agent-supervisor --help create_worker
 ```
+
+## Workers on DeepSeek
+
+When the weekly ChatGPT limit runs out, the work does not stop: the same workers run on the DeepSeek API. Worktrees, `owned_paths`, acceptance, landing and the board stay the same — only the model and the bill change. Codex talks to DeepSeek through its `model_providers` mechanism; this fork lets one `model` string pick the provider.
+
+DeepSeek is billed per token from your API key: `deepseek-flash` costs $0.30 input / $1.20 output per 1M tokens at peak hours and half of that off-peak ([pricing](https://api-docs.deepseek.com/quick_start/pricing/)). On Terminal-Bench 4.1 it solves about half as many tasks as GPT-6.2 Sol at high effort, so keep it as the fallback, not the default.
+
+1. **Add the provider** to the Codex config the workers use (`$CODEX_HOME/config.toml`):
+   ```toml
+   [model_providers.deepseek]
+   name = "DeepSeek"
+   base_url = "https://api.deepseek.com"
+   env_key = "DEEPSEEK_API_KEY"
+   wire_api = "responses"
+   ```
+2. **Give the MCP server the key** — `DEEPSEEK_API_KEY` in its environment, for example:
+   ```bash
+   claude mcp add -s user agent-supervisor -e DEEPSEEK_API_KEY=sk-... -- node /path/to/agent-supervisor-mcp/src/mcp-server.js
+   ```
+3. **Dispatch** with the provider in front of the model:
+   ```json
+   { "model": "deepseek/deepseek-flash", "reasoning_effort": "high" }
+   ```
+   `max` is worth it for a retry after a failure.
+
+If `$CODEX_HOME/catalogs/deepseek.json` exists, the fork passes it to Codex as `model_catalog_json` for DeepSeek runs only: it tells Codex the model's context window and reasoning levels. Any other provider in `model_providers` works the same way: `<provider>/<model>`.
 
 ## Tools
 
