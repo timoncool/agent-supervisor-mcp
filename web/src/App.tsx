@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useMediaQuery } from "@base-ui-components/react/unstable-use-media-query";
 import { AnimatePresence } from "motion/react";
 import { useOverview, useSession } from "./api";
+import { RailDrawer } from "./components/RailDrawer";
 import { SessionRail } from "./components/SessionRail";
 import { SessionBoard } from "./components/SessionBoard";
 import { WorkerDrawer } from "./components/WorkerDrawer";
@@ -32,7 +34,12 @@ function writeHash(route: Route) {
 
 export function App() {
   const t = useT(common);
+  const isDesktop = useMediaQuery("(min-width: 768px)", { noSsr: true });
   const [route, setRoute] = useState(readHash);
+  const [railOpen, setRailOpen] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousWorker = useRef(route.worker);
   const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
   const onResize = useCallback((fraction: number) => {
     setDrawerWidth(fraction);
@@ -43,7 +50,10 @@ export function App() {
     }
   }, []);
   useEffect(() => {
-    const sync = () => setRoute(readHash());
+    const sync = () => {
+      setRailOpen(false);
+      setRoute(readHash());
+    };
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
     return () => {
@@ -67,6 +77,7 @@ export function App() {
     setRoute(next);
   }, []);
   const openStats = useCallback(() => {
+    setRailOpen(false);
     const next = { stats: true, session: null, worker: null };
     writeHash(next);
     setRoute(next);
@@ -74,31 +85,58 @@ export function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && route.worker) go(route.session, null);
+      if (e.key === "Escape" && !railOpen && route.worker) go(route.session, null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, go]);
+  }, [route, go, railOpen]);
+
+  useLayoutEffect(() => {
+    if (!isDesktop || !railOpen) return;
+    setRailOpen(false);
+    boardRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.focus();
+  }, [isDesktop, railOpen]);
+
+  useLayoutEffect(() => {
+    const closedWorker = previousWorker.current;
+    previousWorker.current = route.worker;
+    if (isDesktop || route.worker || !closedWorker) return;
+    const main = mainRef.current;
+    const row = main?.querySelector<HTMLElement>(`[data-worker-id="${CSS.escape(closedWorker)}"]`);
+    (row ?? main)?.focus();
+  }, [isDesktop, route.worker]);
 
   const drawerOpen = route.worker !== null;
+  const narrowWorkerOpen = !isDesktop && drawerOpen;
+  const rail = (
+    <SessionRail
+      pages={overviewQuery.data?.pages}
+      hasMore={Boolean(overviewQuery.hasNextPage)}
+      loadingMore={overviewQuery.isFetchingNextPage}
+      loadMore={() => void overviewQuery.fetchNextPage()}
+      selected={route.stats ? null : sessionId}
+      onSelect={(id) => {
+        setRailOpen(false);
+        go(id, null);
+      }}
+      statsOpen={route.stats}
+      onOpenStats={openStats}
+    />
+  );
 
   return (
     <HoverProvider>
     <div
-      className="grid h-full min-h-0 grid-cols-[280px_minmax(0,1fr)] md:grid-cols-[280px_minmax(0,1fr)_auto_var(--drawer)]"
+      ref={boardRef}
+      className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[280px_minmax(0,1fr)_auto_var(--drawer)] md:grid-rows-none"
       style={{ ["--drawer" as string]: drawerOpen ? `${Math.round(drawerWidth * 10000) / 100}%` : "0px" }}
     >
-      <SessionRail
-        pages={overviewQuery.data?.pages}
-        hasMore={Boolean(overviewQuery.hasNextPage)}
-        loadingMore={overviewQuery.isFetchingNextPage}
-        loadMore={() => void overviewQuery.fetchNextPage()}
-        selected={route.stats ? null : sessionId}
-        onSelect={(id) => go(id, null)}
-        statsOpen={route.stats}
-        onOpenStats={openStats}
-      />
-      <main className="min-h-0 min-w-0">
+      {isDesktop ? rail : (
+        <RailDrawer open={railOpen} onOpenChange={setRailOpen} inert={narrowWorkerOpen}>
+          {rail}
+        </RailDrawer>
+      )}
+      <main ref={mainRef} className="min-h-0 min-w-0 outline-none" tabIndex={-1} inert={narrowWorkerOpen}>
         {route.stats && <StatsScreen />}
         {!route.stats && overviewError && <p className="t-subhead p-8 text-red">{t("backendDown", { message: overviewError.message })}</p>}
         {!route.stats && !overviewError && !session && !sessionError && <p className="t-subhead p-8 text-label-2">{overview ? t("pickSession") : t("loading")}</p>}
@@ -115,10 +153,10 @@ export function App() {
         )}
       </main>
       <div className={drawerOpen ? "hidden h-full min-h-0 md:block" : "hidden"}>{drawerOpen && <Resizer onChange={onResize} />}</div>
-      <div className={`min-h-0 overflow-hidden ${drawerOpen ? "" : "hidden md:block"}`}>
+      <div className={`min-h-0 overflow-hidden ${narrowWorkerOpen ? "fixed inset-0 z-40 bg-bg" : drawerOpen ? "" : "hidden md:block"}`}>
         <AnimatePresence>
           {drawerOpen && route.worker && (
-            <WorkerDrawer key={route.worker} workerId={route.worker} onClose={() => go(sessionId, null)} onOpenWorker={(id) => go(sessionId, id)} />
+            <WorkerDrawer key={route.worker} workerId={route.worker} focusClose={narrowWorkerOpen} onClose={() => go(sessionId, null)} onOpenWorker={(id) => go(sessionId, id)} />
           )}
         </AnimatePresence>
       </div>

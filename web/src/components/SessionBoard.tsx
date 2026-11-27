@@ -32,7 +32,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
   const name = session.title ?? sessionLabel(session.id, session.unsessioned);
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 px-8 pt-7 pb-4">
+      <header className="shrink-0 px-4 pt-7 pb-4 md:px-8">
         <motion.div key={session.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
           <HoverCard side="bottom" render={<h2 className={`t-title1 inline-block max-w-full truncate ${session.unsessioned ? "text-label-2" : ""}`}>{name}</h2>}>
             <div className="t-headline">{name}</div>
@@ -93,7 +93,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
         </AnimatePresence>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 md:px-8">
         <div className="group-header mb-2">{tr(board, "session.workersList")}</div>
         <WorkerLedger pages={pages} hasMore={hasMore} loadingMore={loadingMore} loadMore={loadMore} selected={selectedWorker} onSelect={onSelectWorker} />
       </div>

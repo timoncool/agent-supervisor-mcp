@@ -17,7 +17,8 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-const GRID = "grid-cols-[112px_minmax(0,1fr)_96px_64px_64px_112px]";
+const GRID = "grid-cols-[88px_minmax(0,1fr)] @min-[600px]:grid-cols-[112px_minmax(0,1fr)_96px_64px_64px_112px]";
+const EXTRA_COLUMN = "hidden @min-[600px]:block";
 
 // A grouped inset table: one header row, one line per worker, hairline
 // separators. The row is the hit target, the whole row.
@@ -40,6 +41,7 @@ function Row({ worker, active, onSelect, index }: { worker: WorkerRow; active: b
       <button
         type="button"
         onClick={onSelect}
+        data-worker-id={worker.id}
         aria-current={active ? "true" : undefined}
         className={`grid w-full ${GRID} items-center gap-x-4 px-4 py-3 text-left transition-colors duration-150 ${active ? "bg-blue/12" : "hover:bg-fill/60"}`}
       >
@@ -66,10 +68,10 @@ function Row({ worker, active, onSelect, index }: { worker: WorkerRow; active: b
             {secondary || "—"}
           </span>
         </span>
-        <span className="t-subhead tabular text-right text-label-2">{duration(worker.duration_ms)}</span>
-        <span className={`t-subhead tabular text-right ${worker.changed_file_count > 0 ? "text-label" : "text-label-3"}`}>{worker.changed_file_count}</span>
-        <span className="t-subhead tabular text-right text-label-2">{worker.command_count}</span>
-        <span className="t-footnote tabular text-right text-label-2" title={clock(worker.updated_at)}>{relative(worker.updated_at)}</span>
+        <span className={`${EXTRA_COLUMN} t-subhead tabular text-right text-label-2`}>{duration(worker.duration_ms)}</span>
+        <span className={`${EXTRA_COLUMN} t-subhead tabular text-right ${worker.changed_file_count > 0 ? "text-label" : "text-label-3"}`}>{worker.changed_file_count}</span>
+        <span className={`${EXTRA_COLUMN} t-subhead tabular text-right text-label-2`}>{worker.command_count}</span>
+        <span className={`${EXTRA_COLUMN} t-footnote tabular text-right text-label-2`} title={clock(worker.updated_at)}>{relative(worker.updated_at)}</span>
       </button>
     </motion.li>
   );
@@ -81,14 +83,14 @@ export function WorkerLedger({ pages, hasMore, loadingMore, loadMore, selected, 
   const total = pages[0]?.worker_count ?? workers.length;
   const sentinel = useLoadMore(hasMore, loadingMore, loadMore);
   return (
-    <section className="inset overflow-hidden">
+    <section className="inset @container overflow-hidden">
       <div className={`grid ${GRID} gap-x-4 border-b border-separator-soft px-4 py-2`}>
         <span className="t-footnote text-label-2">{tr(board, "ledger.status")}</span>
         <span className="t-footnote text-label-2">Worker</span>
-        <span className="t-footnote text-right text-label-2">{tr(board, "duration")}</span>
-        <span className="t-footnote text-right text-label-2" title={tr(board, "ledger.filesTitle")}>{tr(board, "ledger.files")}</span>
-        <span className="t-footnote text-right text-label-2">{tr(board, "ledger.commands")}</span>
-        <span className="t-footnote text-right text-label-2">{tr(board, "ledger.updated")}</span>
+        <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`}>{tr(board, "duration")}</span>
+        <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`} title={tr(board, "ledger.filesTitle")}>{tr(board, "ledger.files")}</span>
+        <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`}>{tr(board, "ledger.commands")}</span>
+        <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`}>{tr(board, "ledger.updated")}</span>
       </div>
       <ol className="divide-y divide-separator-soft">
         {workers.map((worker, index) => (

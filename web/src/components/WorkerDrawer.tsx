@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Tabs } from "@base-ui-components/react/tabs";
 import { motion } from "motion/react";
 import { X } from "@phosphor-icons/react";
@@ -14,6 +14,7 @@ import { PanelFade, Segmented } from "./Segmented";
 
 interface Props {
   workerId: string;
+  focusClose: boolean;
   onClose: () => void;
   onOpenWorker: (id: string) => void;
 }
@@ -122,10 +123,22 @@ const TABS = [
 ] as const;
 type TabValue = (typeof TABS)[number]["value"];
 
-export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
+export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Props) {
   const [tab, setTab] = useState<TabValue>("report");
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const { data: worker, error } = useWorker(workerId);
   const { data: eventData } = useEvents(workerId, tab === "events");
+  const loadedWorkerId = worker?.id;
+
+  useLayoutEffect(() => {
+    if (focusClose) closeRef.current?.focus({ preventScroll: true });
+  }, [focusClose]);
+
+  useLayoutEffect(() => {
+    tabsRef.current?.querySelector<HTMLElement>(`[data-value="${tab}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [tab, loadedWorkerId]);
+
   const counts: Partial<Record<TabValue, number>> = worker
     ? { changes: worker.changed_files.length, commands: worker.command_count, events: worker.event_kinds.reduce((n, k) => n + k.count, 0) }
     : {};
@@ -140,23 +153,21 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
       transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1] }}
-      className="flex h-full min-h-0 flex-col border-l border-separator-soft bg-bg"
+      className="relative flex h-full min-h-0 flex-col border-separator-soft bg-bg md:border-l"
       aria-label={tr(board, "drawer.label")}
     >
-      {!worker && <p className="t-subhead p-8 text-label-2">{error ? tr(board, "loadFailed", { message: error.message }) : tr(board, "loading")}</p>}
+      <button ref={closeRef} type="button" onClick={onClose} aria-label={tr(board, "close")} className="absolute top-5 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-fill text-label-2 outline-none hover:bg-fill-2 focus-visible:ring-2 focus-visible:ring-blue md:h-7 md:w-7">
+        <X size={14} weight="bold" />
+      </button>
+      {!worker && <p className="t-subhead p-8 pr-20 text-label-2">{error ? tr(board, "loadFailed", { message: error.message }) : tr(board, "loading")}</p>}
       {worker && (
         <>
           {/* 1. Identity: who this worker is and what it is doing now. Fixed. */}
           <header className="shrink-0 border-b border-separator-soft px-6 pt-5 pb-4">
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <StatusText status={worker.status} phase={worker.phase} className="t-footnote" />
-                <h2 className="t-title2 mt-1">{worker.title}</h2>
-                {worker.goal && <p className="t-subhead mt-1 line-clamp-2 text-label-2" title={worker.goal}>{worker.goal}</p>}
-              </div>
-              <button type="button" onClick={onClose} aria-label={tr(board, "close")} className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-fill text-label-2 hover:bg-fill-2">
-                <X size={14} weight="bold" />
-              </button>
+            <div className="pr-14 md:pr-10">
+              <StatusText status={worker.status} phase={worker.phase} className="t-footnote" />
+              <h2 className="t-title2 mt-1">{worker.title}</h2>
+              {worker.goal && <p className="t-subhead mt-1 line-clamp-2 text-label-2" title={worker.goal}>{worker.goal}</p>}
             </div>
             {worker.status === "running" && worker.current_action && (
               <p className="t-footnote mono mt-3 truncate text-orange" title={worker.current_action}>{worker.current_action}</p>
@@ -180,7 +191,7 @@ export function WorkerDrawer({ workerId, onClose, onOpenWorker }: Props) {
 
           {/* 3. Tabs fixed, content below scrolls. The side chat owns its own scroll. */}
           <Tabs.Root value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex min-h-0 flex-1 flex-col">
-            <div className="mx-6 mt-3">
+            <div ref={tabsRef} className="mx-6 mt-3 shrink-0 overflow-x-auto py-1 [scrollbar-width:none]!">
               <Segmented value={tab} segments={TABS.map((t) => ({ value: t.value, label: tr(board, `tab.${t.value}`), count: counts[t.value] }))} />
             </div>
 

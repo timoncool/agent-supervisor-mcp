@@ -27,11 +27,13 @@ export function Segmented<V extends string>({ segments, value }: { segments: Seg
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(list);
+    list.querySelectorAll("[data-value]").forEach((tab) => ro.observe(tab));
     return () => ro.disconnect();
   }, [value, segments.length]);
 
+  // Cap intrinsic width at the sum of the tab minima, not the widest tab times the tab count.
   return (
-    <Tabs.List ref={listRef} className="relative grid shrink-0 rounded-lg bg-fill p-0.5" style={{ gridTemplateColumns: `repeat(${segments.length}, minmax(0, 1fr))` }}>
+    <Tabs.List ref={listRef} className="relative grid w-max min-w-full max-w-min shrink-0 rounded-lg bg-fill p-0.5" style={{ gridTemplateColumns: `repeat(${segments.length}, minmax(max-content, 1fr))` }}>
       {pill && (
         <motion.span
           aria-hidden
@@ -50,7 +52,7 @@ export function Segmented<V extends string>({ segments, value }: { segments: Seg
             data-value={s.value}
             title={s.title}
             aria-label={s.title}
-            className="t-footnote relative z-10 flex h-8 items-center justify-center gap-1 rounded-md font-medium outline-none focus-visible:ring-2 focus-visible:ring-blue"
+            className="t-footnote relative z-10 flex h-8 items-center justify-center gap-1 rounded-md px-2 font-medium outline-none focus-visible:ring-2 focus-visible:ring-blue"
           >
             <motion.span animate={{ color: selected ? "var(--color-label)" : "var(--color-label-2)" }} transition={{ duration: 0.18 }} className="whitespace-nowrap">
               {s.label}

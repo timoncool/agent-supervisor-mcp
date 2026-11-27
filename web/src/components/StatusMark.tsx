@@ -15,9 +15,9 @@ export function StatusDot({ status, size = 8 }: { status: Status; size?: number 
 export function StatusText({ status, phase, className = "" }: { status: Status; phase?: Phase; className?: string }) {
   const label = status === "running" && phase ? phaseLabel(phase) : statusLabel(status);
   return (
-    <span className={`inline-flex items-center gap-1.5 ${className}`}>
+    <span className={`inline-flex min-w-0 items-center gap-1.5 ${className}`}>
       <StatusDot status={status} />
-      <span className={status === "running" ? "text-orange" : status === "failed" ? "text-red" : "text-label-2"}>{label}</span>
+      <span title={label} className={`min-w-0 truncate ${status === "running" ? "text-orange" : status === "failed" ? "text-red" : "text-label-2"}`}>{label}</span>
     </span>
   );
 }
