@@ -119,7 +119,7 @@ agent-supervisor --help create_worker
 
 ## Workers on DeepSeek
 
-Any worker can run on the DeepSeek API instead of ChatGPT, chosen per worker with one `model` string: some workers on ChatGPT, others on DeepSeek, in the same batch. Use it for extra parallel workers, to compare models on one task, or to keep going when the ChatGPT limit runs out. Worktrees, `owned_paths`, acceptance, landing and the board stay the same — only the model and the bill change. Codex talks to DeepSeek through its `model_providers` mechanism.
+Any worker can run on the DeepSeek API instead of ChatGPT, chosen per worker with one `model` string: some workers on ChatGPT, others on DeepSeek, in the same batch. Worktrees, `owned_paths`, acceptance, landing and the board stay the same — only the model and the bill change. Codex talks to DeepSeek through its `model_providers` mechanism.
 
 DeepSeek is billed per token from your API key: `deepseek-flash` costs $0.30 input / $1.20 output per 1M tokens at peak hours and half of that off-peak ([pricing](https://api-docs.deepseek.com/quick_start/pricing/)). For comparison, on Terminal-Bench 4.1 `deepseek-flash` at high effort solves 29.8% of tasks and GPT-6.2 Sol 58.1%.
 

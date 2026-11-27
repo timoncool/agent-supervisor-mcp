@@ -119,7 +119,7 @@ agent-supervisor --help create_worker
 
 ## Работники на DeepSeek
 
-Любой работник может работать на API DeepSeek вместо ChatGPT, выбор — для каждого работника одной строкой `model`: в одной пачке часть на ChatGPT, часть на DeepSeek. Пригодится для лишних параллельных работников, чтобы сравнить модели на одной задаче или продолжить, когда кончился лимит ChatGPT. Worktree, `owned_paths`, приёмка, вливание и доска остаются прежними, меняются только модель и счёт. Codex ходит в DeepSeek через свой механизм `model_providers`.
+Любой работник может работать на API DeepSeek вместо ChatGPT, выбор — для каждого работника одной строкой `model`: в одной пачке часть на ChatGPT, часть на DeepSeek. Worktree, `owned_paths`, приёмка, вливание и доска остаются прежними, меняются только модель и счёт. Codex ходит в DeepSeek через свой механизм `model_providers`.
 
 DeepSeek платится за токены с вашего API-ключа: `deepseek-flash` стоит $0,30 за вход и $1,20 за выход за 1 млн токенов в часы пик и вдвое дешевле в остальное время ([цены](https://api-docs.deepseek.com/quick_start/pricing/)). Для сравнения: на Terminal-Bench 4.1 `deepseek-flash` на high решает 29,8% задач, GPT-6.2 Sol — 58,1%.
 
