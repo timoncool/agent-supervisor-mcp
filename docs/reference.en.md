@@ -4,7 +4,7 @@ The [README](../README.en.md) covers getting started. Every tool argument, where
 
 ## Tools
 
-Fourteen by default; three more are registered only with `AGENT_SUPERVISOR_TOOLS=all`. Every argument is snake_case, and an unknown or misspelled argument is refused rather than ignored. A failed call sets MCP `isError` and carries a stable `error` code.
+Fifteen by default; three more are registered only with `AGENT_SUPERVISOR_TOOLS=all`. Every argument is snake_case, and an unknown or misspelled argument is refused rather than ignored. A failed call sets MCP `isError` and carries a stable `error` code.
 
 | Tool | Arguments | What it does |
 |---|---|---|
@@ -22,6 +22,7 @@ Fourteen by default; three more are registered only with `AGENT_SUPERVISOR_TOOLS
 | `cleanup` | `action`, `task_ids`, `project_root`, `plan_id`, `item_ids`, `limit` | `plan`: each worktree's verdict and reason; `apply`: remove the selected SAFE items now; `history`: what was removed |
 | `find_works` | `session_id`, `query`, `limit` | Every worker of a session, or a substring search over titles, goals, prompts and last messages |
 | `describe_session` | `session_id`, `title`, `note`, `objective`, `default_acceptance`, `approval_state`, `expected_revision` | Records a batch's title, objective, default acceptance and approval state |
+| `note_worker` | `task_id`, `kind`, `text` | Records a lead decision as a `lead.<kind>` task event. `kind` is `review_ok` / `rework` / `fable` / `manual_fix` / `note`; `text` is optional and at most 2000 characters |
 | `facts` (opt-in) | `action`, `task_id`, `fact_id`, `query`, `limit`, `cursor`, `scope`, `watched_paths`, `expires_at`, `reason` | `search` / `get` read verified facts; `promote` turns a candidate into a verified fact; `revoke` withdraws one |
 | `review` (opt-in) | `action`, `task_id`, `verifier_task_id`, `title`, `verdict`, `reason`, `resolution` | `start` dispatches a read-only, offline verifier; `record` / `resolve` / `get` store the verdict, store how it was closed, read the trail |
 | `get_artifact` (opt-in) | `artifact_id`, `max_chars` | Reads one stored evidence artifact |

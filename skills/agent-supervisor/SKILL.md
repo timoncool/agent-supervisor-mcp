@@ -11,7 +11,7 @@ description: 用 Codex CLI 或 Claude Code 当 worker，并行做可独立验收
 
 适合能拆成几路、每路能单独验收的活，也适合耗时长、中途可能断、需要保留证据的工作。纯问答、单文件小改、需要频繁来回确认的活，主线程自己做更快。
 
-## 14 个工具
+## 15 个工具
 
 | 阶段 | 工具 |
 |---|---|
@@ -20,9 +20,11 @@ description: 用 Codex CLI 或 Claude Code 当 worker，并行做可独立验收
 | 盯进度 | `poll_workers`、`wait_workers` |
 | 收活 | `get_worker`、`get_worker_diff`、`ask_worker` |
 | 交付 | `land_worker`、`verify_push`、`cleanup` |
-| 批次 | `find_works`、`describe_session` |
+| 批次 | `find_works`、`describe_session`、`note_worker` |
 
 参数全是 snake_case，写错名字会被直接拒绝，不会被悄悄忽略。失败的调用带 `isError` 和一个稳定的 `error` 码。`facts`、`review`、`get_artifact` 默认不开，要用时让用户设 `AGENT_SUPERVISOR_TOOLS=all`。
+
+用 `note_worker` 的 `task_id`、`kind`（`review_ok` / `rework` / `fable` / `manual_fix` / `note`）和可选 `text` 记录主线程对 worker 的决定，写入任务事件 `lead.<kind>`。
 
 ## 派单前必须确认
 

@@ -109,7 +109,7 @@ One block of text passes between the two sessions, pasted into the main-brain se
 
 ## Tools
 
-Fourteen by default. Arguments and edge cases are in the [reference](docs/reference.en.md#tools).
+Fifteen by default. Arguments and edge cases are in the [reference](docs/reference.en.md#tools).
 
 | Stage | Tool | What it does |
 |---|---|---|
@@ -127,6 +127,7 @@ Fourteen by default. Arguments and edge cases are in the [reference](docs/refere
 | | `cleanup` | Shows why a worktree is still there, or removes it now. Normally cleanup is automatic |
 | Batches | `find_works` | Finds a batch again, or searches history by substring |
 | | `describe_session` | Records a batch's title, objective, default acceptance and approval state |
+| | `note_worker` | Records a lead decision as a `lead.<kind>` task event, using `task_id`, `kind` (`review_ok` / `rework` / `fable` / `manual_fix` / `note`) and optional `text` |
 
 Three more are registered only with `AGENT_SUPERVISOR_TOOLS=all`: `facts` (the ledger of verified facts), `review` (an independent read-only verifier) and `get_artifact` (stored evidence). A normal batch never needs them, and leaving them out saves context in every session.
 

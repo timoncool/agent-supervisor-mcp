@@ -33,15 +33,15 @@ function mentionedTools(markdown, heading, end, registered) {
   return registered.filter((name) => section.includes(`\`${name}\``));
 }
 
-test("the default tool set is exactly fourteen and the optional three stay off unless asked for", async () => {
+test("the default tool set is exactly fifteen and the optional three stay off unless asked for", async () => {
   const home = await mkdtemp(join(tmpdir(), "supervisor-tools-"));
   try {
     const names = async (env) => withMcp({ SUPERVISOR_HOME: home, AGENT_SUPERVISOR_SKIP_SKILL_SYNC: "1", ...env }, async ({ client }) => (await client.listTools()).tools.map((tool) => tool.name));
     const byDefault = await names({ AGENT_SUPERVISOR_TOOLS: "" });
-    assert.equal(byDefault.length, 14);
+    assert.equal(byDefault.length, 15);
     const all = await names({ AGENT_SUPERVISOR_TOOLS: "all" });
-    assert.deepEqual(all.slice(0, 14), byDefault, "the optional tools come after the default ones");
-    assert.deepEqual(all.slice(14).sort(), ["facts", "get_artifact", "review"]);
+    assert.deepEqual(all.slice(0, 15), byDefault, "the optional tools come after the default ones");
+    assert.deepEqual(all.slice(15).sort(), ["facts", "get_artifact", "review"]);
   } finally {
     await rm(home, { recursive: true, force: true });
   }
@@ -55,7 +55,7 @@ test("both READMEs and both references document every registered MCP tool", asyn
     read("docs/reference.en.md")
   ]);
   const registered = (await registeredTools()).sort();
-  assert.equal(registered.length, 17);
+  assert.equal(registered.length, 18);
   // The READMEs group tools by stage; the references keep one row per tool with its arguments.
   assert.deepEqual(mentionedTools(zh, "## 工具", "## 和 Claude Code", registered), registered);
   assert.deepEqual(mentionedTools(en, "## Tools", "## How this differs", registered), registered);

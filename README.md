@@ -108,7 +108,7 @@ agent-supervisor-web     # 或 npx -p agent-supervisor-mcp agent-supervisor-web
 
 ## 工具
 
-默认 14 个。入参和边界见[参考手册](docs/reference.md#工具)。
+默认 15 个。入参和边界见[参考手册](docs/reference.md#工具)。
 
 | 阶段 | 工具 | 干什么 |
 |---|---|---|
@@ -126,6 +126,7 @@ agent-supervisor-web     # 或 npx -p agent-supervisor-mcp agent-supervisor-web
 | | `cleanup` | 看某个 worktree 为什么还在，或立刻清掉。平时是自动清的 |
 | 批次 | `find_works` | 找回一批活，或按关键字搜历史 |
 | | `describe_session` | 给一批活记标题、目标、默认验收和审批状态 |
+| | `note_worker` | 用 `task_id`、`kind`（`review_ok` / `rework` / `fable` / `manual_fix` / `note`）和可选 `text` 记录主线程决定，写入任务事件 `lead.<kind>` |
 
 另有 3 个默认不注册，设 `AGENT_SUPERVISOR_TOOLS=all` 才出现：`facts`（已验证事实的台账）、`review`（起一个只读 verifier 独立复核）、`get_artifact`（读留存的证据）。日常派活用不到，不注册能省下每个会话的上下文。
 
