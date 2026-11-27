@@ -1,198 +1,151 @@
-# agent-supervisor-mcp: форк для Windows с русской доской
+<div align="center">
 
-Это форк [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp): MCP-сервер, через который Claude Code раздаёт задачи нескольким Codex-работникам сразу, каждому в своей git worktree, и вливает работу только после того, как сервер сам прогнал тесты приёмки.
+# agent-supervisor-mcp (Windows fork)
 
-Что в форке сверх оригинала:
-- **Windows без окон.** Команды работников не открывают консольные окна и не забирают фокус.
-- **Доска на русском** (ещё английский и китайский) и экран **«Сводка»**: сколько выдано и влито, сколько принято с первого раза, доработки, токены Codex и кредиты подписки по дням и по моделям.
-- **CLI** `agent-supervisor <инструмент> --args '<json>'`: те же инструменты из командной строки, можно делать действия пачкой одним вызовом.
-- **Честная приёмка.** `note_worker` записывает решение ведущего, и отметку «принято» нельзя поставить, пока тесты приёмки не прошли. Работу, проверенную на устаревшей основе, влить нельзя, пока её не перепроверили на текущем коде.
-- **Другие провайдеры** через Codex: `model: "deepseek/deepseek-flash"`; усилие `xhigh` и `max`.
-- **Без фонового автообновления** и без загрузки раннеров по имени npm-пакета.
+**An MCP server that lets Claude Code run many Codex workers in parallel, each in its own git worktree, and land their work only after the tests pass.**
 
-## Установка форка
+[![License](https://img.shields.io/github/license/timoncool/agent-supervisor-mcp?style=flat-square)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/timoncool/agent-supervisor-mcp?style=flat-square)](https://github.com/timoncool/agent-supervisor-mcp/stargazers)
+[![Last Commit](https://img.shields.io/github/last-commit/timoncool/agent-supervisor-mcp?style=flat-square)](https://github.com/timoncool/agent-supervisor-mcp/commits)
+[![Upstream](https://img.shields.io/badge/fork%20of-zriyox%2Fagent--supervisor--mcp-6366f1?style=flat-square)](https://github.com/zriyox/agent-supervisor-mcp)
 
-Пакет `agent-supervisor-mcp` в npm — это версия автора. Форк ставится из этого репозитория. Нужны Node 22.13+, Git (на Windows — Git for Windows) и Codex CLI, в который выполнен вход (`codex login`).
+**[English](README.md)** · **[Русский](README_RU.md)**
 
-```
-git clone https://github.com/timoncool/agent-supervisor-mcp.git
-cd agent-supervisor-mcp
-npm ci
-npm --prefix web ci
-npm run web:build
-npm install -g .
-agent-supervisor-setup
-```
+![Summary screen of the board](docs/screenshots/summary-en.png)
 
-`agent-supervisor-setup` кладёт скилл и регистрирует MCP-сервер в Claude Code и Codex. Обновление: `git pull`, затем `npm ci` и `npm run web:build`.
+</div>
 
-Ниже — исходный README автора.
+agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to Codex CLI workers — the lead model plans and reviews, the workers write the code on your ChatGPT subscription. This fork of [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) is built for daily use on Windows: no console windows, a board in English, Russian and Chinese with a Summary of work and cost, a CLI, and stricter acceptance.
 
----
+## Features
 
-# agent-supervisor-mcp
+- **Parallel workers without collisions** — one git worktree and branch per worker; `owned_paths` are checked for overlap before a worker starts
+- **Acceptance the worker cannot fake** — the server runs your test commands after the worker exits and refuses to land a failed or stale result
+- **Small footprint in the lead's context** — worker logs stay on disk; the lead reads a compact summary of every worker (up to 7,000 bytes) and pages through diffs on demand
+- **Windows without windows** — worker commands share a hidden console: no flashing terminals, no stolen focus
+- **Summary screen** — dispatched, landed, first-try pass rate, rework, Codex tokens and subscription credits per day and per model
+- **Board in three languages** — English, Russian, Chinese; picked from the browser, switchable in the footer
+- **CLI over the same tools** — `agent-supervisor <tool> --args '<json>'` batches actions in one shell call and always runs the current code
+- **Lead decisions on record** — `note_worker` stores the verdict; `review_ok` is refused until acceptance has passed
+- **Other providers through Codex** — `model: "deepseek/deepseek-flash"` uses a `model_providers` entry; `reasoning_effort` up to `max`
+- **No background self-update** — runners load only from a file you name, never by npm package name
 
-[English](README.en.md) | 中文
+## Quick Start
 
-[![npm version](https://img.shields.io/npm/v/agent-supervisor-mcp.svg)](https://www.npmjs.com/package/agent-supervisor-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/agent-supervisor-mcp.svg)](https://www.npmjs.com/package/agent-supervisor-mcp)
-[![license](https://img.shields.io/npm/l/agent-supervisor-mcp.svg)](LICENSE)
-[![CI](https://github.com/zriyox/agent-supervisor-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/zriyox/agent-supervisor-mcp/actions/workflows/ci.yml)
-[![node](https://img.shields.io/badge/node-%3E%3D22.13.0-339933.svg)](package.json)
-[![agent-supervisor-mcp on Glama](https://glama.ai/mcp/servers/zriyox/agent-supervisor-mcp/badges/score.svg)](https://glama.ai/mcp/servers/zriyox/agent-supervisor-mcp)
+The package `agent-supervisor-mcp` on npm is the upstream version; this fork installs from the repository. You need Node 22.13+, Git (Git for Windows on Windows) and Codex CLI after `codex login`.
 
-官网 [agent-supervisor.zriyo.com](https://agent-supervisor.zriyo.com) · 给模型读的 [llms.txt](https://agent-supervisor.zriyo.com/llms.txt) · [参考手册](docs/reference.md)
-
-让几个 agent 同时改一个仓库，结果是互相覆盖，没人说得清谁改了什么，主线程的上下文还被 worker 的输出塞满。
-
-agent-supervisor-mcp 是一个 MCP server。主线程（Claude Code、Codex 或任何 MCP 客户端）用它同时指挥多个 Codex CLI worker：一个 worker 一个 Git worktree，状态写进 SQLite，另有一个网页看板。派单和记账都在磁盘上，不占模型上下文。
-
-![演示：一个 Claude Code 主线程同时派 3 个 Codex worker，各自独立 worktree，并行跑完后合并提交](https://raw.githubusercontent.com/zriyox/agent-supervisor-mcp/main/assets/demo.gif)
-
-*30 秒真跑：派 3 个 worker，各自 worktree 并行，主线程收 3 份 diff 合成一次 commit。*
-
-> **这个包以前叫 codex-supervisor-mcp**。改名是因为 worker 不再只是 Codex。装着旧包的机器会被它的最后一版自动带过来：装上本包、把 MCP 注册和 skill 换成 `agent-supervisor`，状态目录原地不动。命令行工具的前缀从 `codex-supervisor-` 变成 `agent-supervisor-`。
->
-> **从 0.x 升级到 1.x**：工具从 39 个收成 14 个，名字和参数都换了，旧名不留别名。升级前先把在跑的 worker 收完，升级后重开会话让新 skill 生效。对照表在[参考手册](docs/reference.md)，变更说明在 [1.0.0 release](https://github.com/zriyox/agent-supervisor-mcp/releases/tag/v1.0.0)。
-
-## 解决什么
-
-| 问题 | 做法 |
-|---|---|
-| 几个 worker 互相踩文件 | 一个 worker 一个 worktree，`owned_paths` 在派单前查冲突 |
-| worker 的输出塞爆主线程 | 事件写 JSONL，主线程只读压缩过的概览（全部 worker 不超过 7000 字节） |
-| 重启或换会话后接不上 | 每个 work 一行 SQLite，带 `thread_id`；`resume_worker` 接回同一个 Codex 会话 |
-| 分不清跑失败还是进程没了 | 状态机把 `failed` 和 `lost` 分开，失败带来源和错误码 |
-| worker 说做完了其实没有 | 派单带 `acceptance` 验收命令，supervisor 在 worker 退出后自己跑，不过就拒绝合入 |
-| 改动留在本地没上线 | `land_worker` 合回主分支，`verify_push` 核对远端真有这笔提交 |
-| worktree 越堆越多 | 已合入或没有改动的在轮询时自动清；没合入的留 7 天，删之前先把未提交的改动存进它的分支。分支和证据不删 |
-
-worker 默认跑 `codex exec`，`model` 透传。主线程留在 Claude，worker 挂 DeepSeek 或别的 provider，账单分开算。
-
-worker 也可以是 Claude Code：`create_worker` 带 `runner: "claude"`。它没有系统级沙箱，所以只能在 git worktree 或只读模式下跑，也不支持旁问（`ask_worker`）；其余派单、验收、续跑、合入、清理都一样。想接别的 CLI，看 [docs/runner.md](docs/runner.md)。
-
-## 五分钟跑起来
-
-要 Node.js 22.13.0 以上，`codex` CLI 在 `PATH` 里。macOS、Linux、Windows 都行。
-
-```bash
-npm install -g agent-supervisor-mcp
-```
-
-安装脚本会给检测到的 Claude Code 和 Codex 装 skill、注册 MCP，装完重启它们。没注册上（比如用了 `--ignore-scripts`）就跑一次 `agent-supervisor-setup`，或者手动加：
-
-```bash
-claude mcp add -s user agent-supervisor -- npx -y agent-supervisor-mcp
-codex mcp add agent-supervisor -- npx -y agent-supervisor-mcp
-```
-
-Claude Desktop、Cursor、Windsurf 这类 GUI 客户端要自己改 MCP 配置，写法在[参考手册](docs/reference.md#环境变量)。只要 skill 不要 MCP：`npx skills add zriyox/agent-supervisor-mcp`。
-
-然后在 Claude Code 里说人话：
-
-> 把这三个模块的单测补齐，用 agent-supervisor 分三路并行跑，session 叫「补单测」。
-
-skill 会带着主线程走完这几步：
-
-```
-preflight_worker     先在同样的环境里跑一遍 probe
-create_worker ×3     每路带 session、owned_paths、goal
-wait_workers         一次最多等 60 秒，没完接着等
-get_worker ×3        每路的汇报，带它真跑过的命令和退出码
-get_worker_diff ×3   它实际改了什么
-land_worker ×3       核过了，代它提交并合入
-```
-
-worker 自己不提交。它的改动留在 `worker/<taskId>` 分支，等主线程看过 diff 再合。
-
-想看着它们跑，开看板：
-
-```bash
-agent-supervisor-web     # 或 npx -p agent-supervisor-mcp agent-supervisor-web
-```
-
-打开 `http://127.0.0.1:7877`。按 session 看每路 worker 的状态、正在跑的命令、改动和事件，还能旁问：从 worker 的线程 fork 一个只读会话来答，不打断它手上的活。看板只看，不派单也不取消。
-
-## 我自己怎么用
-
-能连 MCP 的都能当主线程，下面只是我的用法。我开两个 Claude Code 会话，一个只管文档，一个只管派活。合成一个的话，又写详设又盯 worker，上下文两小时就满。
-
-| 谁 | 开在哪 | 管什么 |
-|---|---|---|
-| 我 | | 定需求，拍板，看汇报 |
-| 规划会话 | 需求和文档仓 | 聊需求，写详设，每块活写一份任务书 |
-| 主脑会话 | 代码仓的一个 worktree | 读任务书，派 worker，核 diff，向我汇报。不写业务代码 |
-| Codex worker | 各自的 worktree | 一个 worker 做一个能独立验收的功能包。不 commit、不 push |
-
-两个会话之间只传一段文字，粘进主脑会话用 `/goal` 接上：
+**One message to Claude Code:**
 
 ```text
-【角色】  你是主脑：派 worker，核结果，更新文档，向我汇报。不写业务代码。先加载 agent-supervisor skill。
-【背景】  这一块为什么做，上一块留下了什么
-【先读】  哪几份文档的哪几节，说法冲突时以哪份为准
-【做什么】照任务书第几节那张表做，表里没有的不做
-【派活】  先 find_works 查重；整批同一个 session.id；
-          写入范围不重叠才并行；验证命令同时填 acceptance；
-          worker 说过了不算，你看到 diff 才算
-【红线】  不改什么，不推什么，不读什么
-【汇报】  中文，表格优先，报完停下来等我
+Install the agent-supervisor MCP server from https://github.com/timoncool/agent-supervisor-mcp:
+clone it into a folder of your choice, run `npm ci`, `npm --prefix web ci`, `npm run web:build`
+and `npm install -g .` there, then run `agent-supervisor-setup` to install the skill and register
+the MCP server. Check that `agent-supervisor --help` lists the tools and that `codex login status`
+says I am logged in. Remind me to restart Claude Code at the end.
 ```
 
-## 工具
+**Or by hand:**
 
-默认 15 个。入参和边界见[参考手册](docs/reference.md#工具)。
+1. **Clone**
+   ```bash
+   git clone https://github.com/timoncool/agent-supervisor-mcp.git
+   cd agent-supervisor-mcp
+   ```
+2. **Install**
+   ```bash
+   npm ci
+   npm --prefix web ci
+   npm run web:build
+   npm install -g .
+   ```
+3. **Register** the skill and the MCP server with Claude Code and Codex, then restart Claude Code
+   ```bash
+   agent-supervisor-setup
+   ```
 
-命令行也能调用同样的 MCP 工具和参数：`agent-supervisor <tool> [--args '<json>' | --args-file <path>]`。每次调用都是使用最新代码的新进程，stdout 输出与 MCP 相同的响应文本（JSON）；退出码 `0` 为成功，`1` 为工具返回 `isError`，`2` 为未知工具（`unknown_tool`）或参数无效（`invalid_arguments`）。不带参数或用 `--help` 列出工具及描述；`agent-supervisor <tool> --help` 显示工具描述和参数键。
+To update: `git pull`, then `npm ci` and `npm run web:build`.
 
-| 阶段 | 工具 | 干什么 |
-|---|---|---|
-| 派单前 | `preflight_worker` | 用和目标 worker 相同的环境起一个短 probe，或者先把验收命令真跑一遍 |
-| 派单 | `create_worker` | 派一路。带 `followup_of` 就是接着另一路的成果干 |
-| | `resume_worker` | 同一个会话继续跑，可先 rebase 到主线新头 |
-| | `cancel_worker` | 终止一路 |
-| 盯进度 | `poll_workers` | 不带 cursor 给全表；带 cursor 只给上次之后的变化，顺带恢复死掉的第一轮、清掉可清的 worktree |
-| | `wait_workers` | 等到有结果，单次最多 60 秒 |
-| 收活 | `get_worker` | 读一路：摘要、汇报、状态、事件、goal，要哪块取哪块 |
-| | `get_worker_diff` | 实际改动，按文件和 hunk 分页 |
-| | `ask_worker` | 旁路问它一句，只读，不动它的线程 |
-| 交付 | `land_worker` | 代提交并 cherry-pick 到集成分支，验收没过就拒 |
-| | `verify_push` | 证明合入的提交已经在远端。只验证，不替你 push |
-| | `cleanup` | 看某个 worktree 为什么还在，或立刻清掉。平时是自动清的 |
-| 批次 | `find_works` | 找回一批活，或按关键字搜历史 |
-| | `describe_session` | 给一批活记标题、目标、默认验收和审批状态 |
-| | `note_worker` | 用 `task_id`、`kind`（`review_ok` / `rework` / `fable` / `manual_fix` / `note`）和可选 `text` 记录主线程决定，写入任务事件 `lead.<kind>` |
+Claude Desktop, Cursor and other MCP clients — the same server in their config (use the folder you cloned into):
 
-另有 3 个默认不注册，设 `AGENT_SUPERVISOR_TOOLS=all` 才出现：`facts`（已验证事实的台账）、`review`（起一个只读 verifier 独立复核）、`get_artifact`（读留存的证据）。日常派活用不到，不注册能省下每个会话的上下文。
+```json
+{
+  "mcpServers": {
+    "agent-supervisor": {
+      "command": "node",
+      "args": ["C:/path/to/agent-supervisor-mcp/src/mcp-server.js"]
+    }
+  }
+}
+```
 
-## 和 Claude Code 的 subagent 有什么区别
+## Usage
 
-subagent 自己也能开 worktree，所以文件隔离不算差别。差别在模型和进程。
+Ask Claude Code to delegate: *"split this into tasks and give them to Codex workers"*. The installed skill tells it the loop:
+
+1. `create_worker` — the task, the files the worker may change (`owned_paths`), acceptance commands, model and effort
+2. `wait_workers` / `poll_workers` — wait for the batch; the server runs acceptance after each worker exits
+3. `get_worker` and `get_worker_diff` — the real commands with exit codes, then the diff
+4. `land_worker` — land the accepted work on your branch, or `resume_worker` to send it back with the review
+
+The board runs at `http://127.0.0.1:7877` (`agent-supervisor-web`): every batch, its workers, their reports and events.
+
+![A batch on the board](docs/screenshots/board-en.png)
+ The same tools work from a shell:
+
+```bash
+agent-supervisor poll_workers --args '{}'
+agent-supervisor --help create_worker
+```
+
+## Tools
+
+Fifteen by default; `facts`, `review` and `get_artifact` are added with `AGENT_SUPERVISOR_TOOLS=all`. Full arguments: [tool reference](docs/reference.en.md).
+
+| Tool | What it does |
+|---|---|
+| `preflight_worker` | Proves the environment with a short probe before a real worker is spent |
+| `create_worker` | Starts one worker on one task in its own worktree: files it may change, acceptance, model, effort |
+| `resume_worker` | Continues the same worker session with review notes; can rebase it onto newer code first |
+| `cancel_worker` | Stops a worker or its acceptance run; its worktree and changes stay |
+| `poll_workers` | Compact table of every worker, then only what changed since the last cursor |
+| `wait_workers` | Waits until the given workers finish, up to 60 s per call |
+| `get_worker` | One worker: status, report, real commands with exit codes, acceptance |
+| `get_worker_diff` | What the worker changed: file index, then patches page by page |
+| `ask_worker` | A side question to a read-only fork of the worker's thread |
+| `land_worker` | Lands the accepted work on your branch; refuses failed or stale acceptance |
+| `verify_push` | Proves the landed commit is on the remote branch |
+| `cleanup` | Plans and removes worktrees that are safe to remove |
+| `find_works` | Finds workers of a session or by text |
+| `describe_session` | Records a batch's title, objective and default acceptance |
+| `note_worker` | Records the lead's decision; `review_ok` needs passed acceptance |
+
+## Configuration
+
+| Variable | What it does |
+|---|---|
+| `SUPERVISOR_HOME` | where the state, logs and worktrees live (default: `~/.agent-supervisor`) |
+| `CODEX_HOME` | a separate Codex config for the workers: its own login, `AGENTS.md`, model providers |
+| `CODEX_BIN` | the Codex executable, when it is not found on `PATH` |
+| `AGENT_SUPERVISOR_CLEANUP_HOLD_DAYS` | how long worktrees that were never landed are kept |
+| `SUPERVISOR_WEB_PORT` | board port (default `7877`) |
+| `AGENT_SUPERVISOR_RUNNER_<NAME>` | path to a runner module other than the built-in `codex` and `claude` |
+
+## How this differs from Claude Code subagents
+
+A subagent can open its own worktree too, so file isolation is not the difference. The model and the process are.
 
 | | Claude Code subagent | agent-supervisor worker |
 |---|---|---|
-| 能跑什么模型 | 只能选 Claude | Codex CLI 配了 provider 的都行 |
-| 干活的是谁 | Claude Code 自己 | 独立的 `codex exec` 进程 |
-| 两路写同一个文件 | 没有路径声明 | 派单前查 `owned_paths` 交集，重叠直接拒 |
-| 主线程挂了 | 收不回来 | worker 和验收照常跑完，新窗口用 `find_works` 找回 |
-| 谁能驱动 | 只有 Claude Code | 任何 MCP 客户端 |
-| 看过程 | 只有它返回的结论 | 原始 JSONL 和网页看板 |
+| Which models | Claude only | Anything the Codex CLI has a provider for |
+| Who does the work | Claude Code itself | A separate `codex exec` process |
+| Two workers writing one file | No path declaration | `owned_paths` overlap is checked before dispatch and rejected |
+| The main thread dies | The work cannot be collected | Workers and acceptance run to the end; a new window finds them again with `find_works` |
+| Who can drive it | Claude Code only | Any MCP client |
+| Seeing the process | Only the conclusion it returns | Raw JSONL and the web board |
 
-## 配置和状态
+## State and uninstall
 
-状态都在 `~/.agent-supervisor`（从 codex-supervisor-mcp 升上来、已有 `~/.codex-supervisor` 的机器继续用旧目录）：`data/supervisor.sqlite` 是台账，`data/runs/<taskId>.jsonl` 是 Codex 的原始输出，`worktrees/<taskId>/` 是各路的工作区。
-
-| 变量 | 默认 | 作用 |
-|---|---|---|
-| `SUPERVISOR_HOME` | `~/.agent-supervisor` | 状态根目录。MCP 和看板要指同一个 |
-| `CODEX_BIN` | `codex` | Codex CLI 路径。GUI 客户端的 `PATH` 里常常没有它 |
-| `SUPERVISOR_WEB_PORT` | `7877` | 看板端口 |
-| `AGENT_SUPERVISOR_NO_AUTO_UPDATE` | 未设 | `1` 关掉后台自动更新，只提醒 |
-
-其余变量、worker 的六种状态、沙箱默认放开哪些缓存目录，都在[参考手册](docs/reference.md)。
-
-更新不用管。server 启动时后台查一次 registry，有新版就另起进程 `npm i -g`，正在跑的会话不受影响，下一个新会话就是新版。只对全局安装的那份生效。
-
-卸载：
+Everything lives under `SUPERVISOR_HOME` (`~/.agent-supervisor` by default): `data/supervisor.sqlite` is the ledger, `data/runs/<taskId>.jsonl` is Codex's raw output, `worktrees/<taskId>/` holds each worker's checkout. The MCP server and the board must point at the same directory.
 
 ```bash
 npm uninstall -g agent-supervisor-mcp
@@ -201,43 +154,70 @@ codex mcp remove agent-supervisor
 rm -rf ~/.claude/skills/agent-supervisor ~/.agents/skills/agent-supervisor ~/.codex/skills/agent-supervisor ~/.agent-supervisor
 ```
 
-## 排查
+## Troubleshooting
 
-| 症状 | 原因 | 处理 |
+| Symptom | Cause | Fix |
 |---|---|---|
-| `claude mcp list` 里没有 | 安装时没跑 `postinstall` | `agent-supervisor-setup` |
-| worker 一起来就 `failed`，`spawn codex ENOENT` | 进程 `PATH` 里没有 codex | 设 `CODEX_BIN` |
-| `codex only resolved to a shell shim` | Windows 只找到 `.cmd`，包入口没了 | 重装 `@openai/codex`，或 `CODEX_BIN` 指到 `codex.js` |
-| `Cannot find module 'node:sqlite'` | Node 低于 22.13.0 | 升 Node |
-| worker `lost` | worker 或它的运行进程被杀了 | 查事件，`resume_worker` 接回 |
-| worker `timed_out` | 时间预算用完被停掉 | 看已有改动；单轮超时 `resume_worker`，总预算用完用 `followup_of` 带新 `limits` 接续 |
-| `git add` 报 `index.lock: Operation not permitted` | 沙箱把 `.git` 设成只读，这是正常边界 | 让 `land_worker` 带 `commit_message` 代提交 |
-| `owned_paths overlap with active worker(s)` | 两路认领了同一片路径 | 改拆法，或取消占着的那路 |
-| 看板是空的 | 看板和 MCP 的 `SUPERVISOR_HOME` 不一样 | 两边指同一个目录 |
-| `port 7877 ... is already in use` | 已经有一个看板在跑 | 直接开它，或换 `SUPERVISOR_WEB_PORT` |
+| Missing from `claude mcp list` | The server was not registered | `agent-supervisor-setup` |
+| Worker `failed` at once, `spawn codex ENOENT` | No codex on the process `PATH` | Set `CODEX_BIN` |
+| `codex only resolved to a shell shim` | Windows found only the `.cmd`; the package files are gone | Reinstall `@openai/codex`, or point `CODEX_BIN` at `codex.exe` |
+| `Cannot find module 'node:sqlite'` | Node older than 22.13.0 | Upgrade Node |
+| Worker is `lost` | The worker or its run process was killed | Read the events, then `resume_worker` |
+| Worker is `timed_out` | Its time budget ran out and it was stopped | Read what it left; `resume_worker`, or `followup_of` with new `limits` |
+| `git add` fails with `index.lock: Operation not permitted` | The sandbox makes `.git` read-only on purpose | Let `land_worker` commit with `commit_message` |
+| `owned_paths overlap with active worker(s)` | Two workers claimed the same paths | Split the work differently, or cancel the one holding them |
+| `acceptance_stale` on landing | Acceptance passed on an older base | `resume_worker` with `rebase_onto: "HEAD"` |
+| The board is empty | The board and the MCP server use different `SUPERVISOR_HOME` | Point both at the same directory |
+| `port 7877 ... is already in use` | A board is already running | Open that one, or change `SUPERVISOR_WEB_PORT` |
 
-## 已知限制
+## Known limitations
 
-- worktree 从一个提交切出来，你工作区里没 commit 的东西不在里面。
-- 只隔离工作目录。临时目录、数据库、端口是共用的。
-- 守卫拦直接写文件，但它不是文件沙箱。你声明放行的脚本可以有清单外的副作用，要靠 land 前的 diff 检查兜住。
-- `acceptance` 里写了什么就查什么，没写的不会替你查。剩下的靠主线程看 diff。
-- 客户端的 MCP 超时是硬墙，一次 `wait_workers` 等不到底，只能反复调。
-- `find_works` 是子串匹配，几百条够用。向量检索不打算做。
+- A worktree is cut from a commit. Uncommitted changes in your checkout are not in it.
+- Only the working directory is isolated. Temp directories, databases and ports are shared.
+- The guard blocks direct file writes, but it is not a filesystem sandbox: a script you allowed can have side effects outside its declared paths. The diff check before landing is what catches them.
+- Acceptance checks what you wrote in `acceptance` and nothing else. The rest is the lead reading the diff.
+- The client's MCP tool timeout is a hard wall, so one `wait_workers` call cannot wait to the end. Call it again.
 
-## 开发
+## Documentation
 
-```bash
-npm install
-npm test               # fake-codex 回放，不到一分钟
-npm run test:real      # 真 codex CLI 端到端，要先登录
-npm run web:dev        # 看板开发，/api 代理到 7877
-```
+- [Tool reference](docs/reference.en.md) · [Architecture](docs/architecture.md) · [Writing a runner](docs/runner.md)
+- Upstream project and its docs: [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp), [agent-supervisor.zriyo.com](https://agent-supervisor.zriyo.com)
 
-CI 跑 Ubuntu、macOS、Windows，外加一个 Node 22.13.0 的 job 卡住 `engines` 下界。
+## Other Projects by [@timoncool](https://github.com/timoncool)
 
-贡献看 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题走[私密通道](https://github.com/zriyox/agent-supervisor-mcp/security/advisories/new)，见 [SECURITY.md](SECURITY.md)。
+| Project | Description |
+|---------|-------------|
+| [telegram-api-mcp](https://github.com/timoncool/telegram-api-mcp) | Full Telegram Bot API as MCP server |
+| [civitai-mcp-ultimate](https://github.com/timoncool/civitai-mcp-ultimate) | Civitai API as MCP server |
+| [trail-spec](https://github.com/timoncool/trail-spec) | TRAIL — cross-MCP content tracking protocol |
+| [ACE-Step Studio](https://github.com/timoncool/ACE-Step-Studio) | AI music studio — songs, vocals, covers, videos |
+| [VideoSOS](https://github.com/timoncool/videosos) | AI video production in the browser |
+
+## Authors
+
+- **zriyo** — original author of [agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp)
+- **Nerual Dreming** — this fork — [Telegram](https://t.me/nerual_dreming) | [neuro-cartel.com](https://neuro-cartel.com) | [ArtGeneration.me](https://artgeneration.me)
+
+## Support the Author
+
+I build open-source software and do AI research. Most of what I create is free and available to everyone. Your donations help me keep creating without worrying about where the next meal comes from =)
+
+**[All donation methods](https://github.com/timoncool/ACE-Step-Studio/blob/master/DONATE.md)** | **[dalink.to/nerual_dreming](https://dalink.to/nerual_dreming)** | **[boosty.to/neuro_art](https://boosty.to/neuro_art)**
+
+- **BTC:** `1E7dHL22RpyhJGVpcvKdbyZgksSYkYeEBC`
+- **ETH (ERC20):** `0xb5db65adf478983186d4897ba92fe2c25c594a0c`
+- **USDT (TRC20):** `TQST9Lp2TjK6FiVkn4fwfGUee7NmkxEE7C`
+
+## Star History
+
+<a href="https://github.com/timoncool/agent-supervisor-mcp/stargazers">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="docs/stars-dark.svg" />
+   <source media="(prefers-color-scheme: light)" srcset="docs/stars-light.svg" />
+   <img alt="Star History Chart" src="docs/stars-light.svg" />
+ </picture>
+</a>
 
 ## License
 
-MIT
+[MIT](LICENSE) — © zriyo; changes in this fork © Nerual Dreming, under the same license.
