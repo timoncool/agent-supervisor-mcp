@@ -77,8 +77,8 @@ export function workerStats({ days = 30, now = new Date() } = {}) {
   const events = db.prepare(`
     SELECT e.task_id, e.created_at, e.event_type, e.payload, t.model FROM task_events e LEFT JOIN tasks t ON t.id = e.task_id
     WHERE e.created_at >= ? AND (e.event_type IN ('supervisor.acceptance', 'supervisor.landed', 'turn.completed') OR e.event_type LIKE 'lead.%')
+    ORDER BY e.id
   `).all(since);
-  const firstAcceptance = new Map();
   for (const event of events) {
     const bucket = at(day(event.created_at));
     let payload = {};
@@ -92,8 +92,6 @@ export function workerStats({ days = 30, now = new Date() } = {}) {
       const failed = !passed && payload.status === "failed";
       if (passed) bucket.accepted += 1;
       else if (failed) bucket.acceptance_failed += 1;
-      // A cancelled or interrupted run is no verdict on the work.
-      if ((passed || failed) && !firstAcceptance.has(event.task_id)) firstAcceptance.set(event.task_id, passed);
     } else if (event.event_type === "supervisor.landed") {
       bucket.landed += 1;
     } else if (event.event_type === "turn.completed") {
@@ -121,7 +119,27 @@ export function workerStats({ days = 30, now = new Date() } = {}) {
     for (const key of Object.keys(row)) if (key !== "date") sum[key] = (sum[key] ?? 0) + row[key];
     return sum;
   }, {});
-  const judged = [...firstAcceptance.values()];
+  // First-try is judged on a task's first verdict ever, counted when that
+  // verdict falls inside the window. A cancelled or interrupted run is no
+  // verdict on the work.
+  const firstAcceptance = new Map();
+  const verdicts = db.prepare(`
+    SELECT task_id, created_at, payload FROM task_events
+    WHERE event_type = 'supervisor.acceptance'
+      AND task_id IN (SELECT task_id FROM task_events WHERE event_type = 'supervisor.acceptance' AND created_at >= ?)
+    ORDER BY id
+  `).all(since);
+  for (const verdict of verdicts) {
+    if (firstAcceptance.has(verdict.task_id)) continue;
+    let payload = {};
+    try {
+      payload = JSON.parse(verdict.payload);
+    } catch {
+      continue;
+    }
+    if (payload.passed === true || payload.status === "failed") firstAcceptance.set(verdict.task_id, { passed: payload.passed === true, at: verdict.created_at });
+  }
+  const judged = [...firstAcceptance.values()].filter((first) => first.at >= since).map((first) => first.passed);
   return {
     days,
     since,
