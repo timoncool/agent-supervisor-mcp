@@ -29,7 +29,8 @@ agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to 
 | Lead decisions | — | `note_worker`; `review_ok` is refused until acceptance has passed |
 | Stale acceptance | flagged, landing still allowed | landing refused until the worker is re-checked on current code |
 | Context files | passed as paths with hashes; the worker reads them | included in the worker prompt (120k-character budget) |
-| Models | `model` passed to Codex, effort `minimal`–`high` | also `provider/model` from Codex `model_providers`, effort up to `max` |
+| ChatGPT limit runs out | workers stop, or every worker moves to another provider through the shared Codex config | any single worker goes to the DeepSeek API with `model: "deepseek/deepseek-flash"`, the rest stay on ChatGPT ([how](#workers-on-deepseek)) |
+| Reasoning effort | `minimal`–`high` | up to `xhigh` and `max` |
 | Updates | background self-update from npm | none: you update with `git pull` |
 | Runners | built-in, by npm package name or from a file | built-in or from a file you name |
 | Install | `npm install -g agent-supervisor-mcp` | from this repository (below) |
