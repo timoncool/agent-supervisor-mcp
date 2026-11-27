@@ -17,6 +17,25 @@
 
 agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to Codex CLI workers — the lead model plans and reviews, the workers write the code on your ChatGPT subscription. This fork of [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) is localized into Russian and built for daily use on Windows: no console windows, a board in English, Russian and Chinese with a Summary of work and cost, a CLI, and stricter acceptance.
 
+## What's different from the original
+
+| | [Original](https://github.com/zriyox/agent-supervisor-mcp) | This fork |
+|---|---|---|
+| Windows | every worker command flashes a console window and takes the focus | workers share a hidden console, no windows |
+| Board language | Chinese | Russian, English, Chinese — from the browser, switchable |
+| Summary screen | — | dispatched, landed, first-try pass rate, rework, tokens and credits per day and model |
+| Narrow screens | — | layout for 375 px and tablets |
+| CLI | — | `agent-supervisor <tool> --args '<json>'` over the same tools |
+| Lead decisions | — | `note_worker`; `review_ok` is refused until acceptance has passed |
+| Stale acceptance | flagged, landing still allowed | landing refused until the worker is re-checked on current code |
+| Context files | passed as paths with hashes; the worker reads them | included in the worker prompt (120k-character budget) |
+| Models | `model` passed to Codex, effort `minimal`–`high` | also `provider/model` from Codex `model_providers`, effort up to `max` |
+| Updates | background self-update from npm | none: you update with `git pull` |
+| Runners | built-in, by npm package name or from a file | built-in or from a file you name |
+| Install | `npm install -g agent-supervisor-mcp` | from this repository (below) |
+
+Bug fixes go back upstream as pull requests.
+
 ## Features
 
 - **Parallel workers without collisions** — one git worktree and branch per worker; `owned_paths` are checked for overlap before a worker starts
