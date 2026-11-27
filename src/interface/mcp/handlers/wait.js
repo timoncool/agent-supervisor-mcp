@@ -18,7 +18,7 @@ async function pollUntilSettled({ task_ids, mode, pollMs, emitProgress }, { star
   const progressToken = extra?._meta?.progressToken;
   let lastProgressAt = -Infinity;
   while (Date.now() - startedAt < effectiveTimeoutMs) {
-    if (extra?.signal.aborted) return true;
+    if (extra?.signal?.aborted) return true;
     await reconcileDetachedActiveTasks();
     const tasks = (await getTasks(task_ids)).filter(Boolean);
     const settledCount = tasks.filter(isSettled).length;

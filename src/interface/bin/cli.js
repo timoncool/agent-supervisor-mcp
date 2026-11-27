@@ -18,6 +18,11 @@ async function main([name, ...options]) {
     return 0;
   }
 
+  if (name === "--help" && options.length === 1) {
+    [name] = options;
+    options = ["--help"];
+  }
+
   const tool = tools.find(([toolName]) => toolName === name);
   if (!tool) {
     console.log(JSON.stringify({ error: "unknown_tool" }));
@@ -49,9 +54,16 @@ async function main([name, ...options]) {
     return invalidArguments(`${issue.path.join(".") || "arguments"}: ${issue.message}`);
   }
 
-  const result = await handler(parsed.data, {});
-  process.stdout.write(`${result.content[0].text}\n`);
-  return result.isError ? 1 : 0;
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  process.once("SIGINT", abort);
+  try {
+    const result = await handler(parsed.data, { signal: controller.signal });
+    process.stdout.write(`${result.content[0].text}\n`);
+    return result.isError ? 1 : 0;
+  } finally {
+    process.removeListener("SIGINT", abort);
+  }
 }
 
 process.exitCode = await main(process.argv.slice(2));

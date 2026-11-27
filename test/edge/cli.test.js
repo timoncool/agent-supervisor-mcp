@@ -23,6 +23,11 @@ test("CLI validates arguments, accepts both sources, and preserves MCP text and 
   assert.equal(poll.status, 0, poll.stderr || poll.stdout);
   assert.deepEqual(JSON.parse(poll.stdout).workers, []);
 
+  const wait = invoke(env, "wait_workers", "--args", '{"task_ids":["missing"],"timeout_ms":1000}');
+  assert.doesNotMatch(wait.stderr, /TypeError/);
+  assert.equal(wait.status, 0, wait.stderr || wait.stdout);
+  assert.deepEqual(JSON.parse(wait.stdout).missing_ids, ["missing"]);
+
   const unknown = invoke(env, "nope");
   assert.equal(unknown.status, 2);
   assert.deepEqual(JSON.parse(unknown.stdout), { error: "unknown_tool" });
@@ -47,6 +52,14 @@ test("CLI validates arguments, accepts both sources, and preserves MCP text and 
   assert.equal(help.status, 0);
   assert.match(help.stdout, /get_worker: One worker/);
   assert.match(help.stdout, /Arguments: task_id, include/);
+
+  const leadingHelp = invoke(env, "--help", "get_worker");
+  assert.equal(leadingHelp.status, 0);
+  assert.equal(leadingHelp.stdout, help.stdout);
+
+  const unknownHelp = invoke(env, "--help", "nope");
+  assert.equal(unknownHelp.status, 2);
+  assert.deepEqual(JSON.parse(unknownHelp.stdout), { error: "unknown_tool" });
 });
 
 test("CLI probe reads show per-command output tails and the full run log path", async (t) => {
