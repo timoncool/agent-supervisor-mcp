@@ -29,7 +29,7 @@ agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to 
 | Lead decisions | — | `note_worker`; `review_ok` is refused until acceptance has passed |
 | Stale acceptance | flagged, landing still allowed | landing refused until the worker is re-checked on current code |
 | Context files | passed as paths with hashes; the worker reads them | included in the worker prompt (120k-character budget) |
-| ChatGPT limit runs out | workers stop, or every worker moves to another provider through the shared Codex config | any single worker goes to the DeepSeek API with `model: "deepseek/deepseek-flash"`, the rest stay on ChatGPT ([how](#workers-on-deepseek)) |
+| Provider per worker | one provider for all workers, set in the shared Codex config | each worker picks its own: `model: "deepseek/deepseek-flash"` next to ChatGPT workers in one batch ([how](#workers-on-deepseek)) |
 | Reasoning effort | `minimal`–`high` | up to `xhigh` and `max` |
 | Updates | background self-update from npm | none: you update with `git pull` |
 | Runners | built-in, by npm package name or from a file | built-in or from a file you name |
@@ -39,7 +39,7 @@ Bug fixes go back upstream as pull requests.
 
 ## Features
 
-- **Keeps working when the ChatGPT limit runs out** — switch workers to the DeepSeek API with one argument, same worktrees, acceptance and landing ([how](#workers-on-deepseek))
+- **Workers on DeepSeek or any provider** — pick the model per worker with one argument (`deepseek/deepseek-flash`), mix providers in one batch, same worktrees, acceptance and landing ([how](#workers-on-deepseek))
 - **Parallel workers without collisions** — one git worktree and branch per worker; `owned_paths` are checked for overlap before a worker starts
 - **Acceptance the worker cannot fake** — the server runs your test commands after the worker exits and refuses to land a failed or stale result
 - **Small footprint in the lead's context** — worker logs stay on disk; the lead reads a compact summary of every worker (up to 7,000 bytes) and pages through diffs on demand
@@ -119,9 +119,9 @@ agent-supervisor --help create_worker
 
 ## Workers on DeepSeek
 
-When the weekly ChatGPT limit runs out, the work does not stop: the same workers run on the DeepSeek API. Worktrees, `owned_paths`, acceptance, landing and the board stay the same — only the model and the bill change. Codex talks to DeepSeek through its `model_providers` mechanism; this fork lets one `model` string pick the provider.
+Any worker can run on the DeepSeek API instead of ChatGPT, chosen per worker with one `model` string: some workers on ChatGPT, others on DeepSeek, in the same batch. Use it for extra parallel workers, to compare models on one task, or to keep going when the ChatGPT limit runs out. Worktrees, `owned_paths`, acceptance, landing and the board stay the same — only the model and the bill change. Codex talks to DeepSeek through its `model_providers` mechanism.
 
-DeepSeek is billed per token from your API key: `deepseek-flash` costs $0.30 input / $1.20 output per 1M tokens at peak hours and half of that off-peak ([pricing](https://api-docs.deepseek.com/quick_start/pricing/)). On Terminal-Bench 4.1 it solves about half as many tasks as GPT-6.2 Sol at high effort, so keep it as the fallback, not the default.
+DeepSeek is billed per token from your API key: `deepseek-flash` costs $0.30 input / $1.20 output per 1M tokens at peak hours and half of that off-peak ([pricing](https://api-docs.deepseek.com/quick_start/pricing/)). For comparison, on Terminal-Bench 4.1 `deepseek-flash` at high effort solves 29.8% of tasks and GPT-6.2 Sol 58.1%.
 
 1. **Add the provider** to the Codex config the workers use (`$CODEX_HOME/config.toml`):
    ```toml
