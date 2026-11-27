@@ -2,6 +2,16 @@
 
 [README](../README.md) 只讲怎么上手。每个工具的入参、守卫和验收的边界、沙箱放开了哪些目录、全部环境变量，都在这里。
 
+## 命令行调用工具
+
+```bash
+agent-supervisor <tool> [--args '<json>' | --args-file <path>]
+```
+
+CLI 使用与 MCP 相同的工具和参数，每次调用都是加载最新代码的新进程。`--args` 直接传 JSON，`--args-file` 从指定文件读取 JSON；不传时使用空对象。工具响应的文本（JSON）原样写入 stdout，并附加换行。
+
+退出码 `0` 表示成功，`1` 表示工具响应带 `isError`，`2` 表示未知工具（`unknown_tool`）或参数无效（`invalid_arguments`，包括 JSON 解析或参数校验失败）。不带参数或单独使用 `--help` 会列出工具及描述；`agent-supervisor <tool> --help` 显示该工具的描述和参数键。
+
 ## 工具
 
 默认 15 个，另有 3 个设 `AGENT_SUPERVISOR_TOOLS=all` 才注册。参数全是 snake_case；多传或拼错的参数会被拒绝，不会被忽略。失败的调用带 MCP 的 `isError` 和一个稳定的 `error` 码。

@@ -111,6 +111,8 @@ One block of text passes between the two sessions, pasted into the main-brain se
 
 Fifteen by default. Arguments and edge cases are in the [reference](docs/reference.en.md#tools).
 
+The CLI calls the same MCP tools with the same arguments: `agent-supervisor <tool> [--args '<json>' | --args-file <path>]`. Each call starts a new process with fresh code and writes the same response text as MCP (JSON) to stdout; exit code `0` means success, `1` a tool response with `isError`, and `2` an unknown tool (`unknown_tool`) or invalid arguments (`invalid_arguments`). With no arguments or `--help` it lists tools and descriptions; `agent-supervisor <tool> --help` shows the tool description and argument keys.
+
 | Stage | Tool | What it does |
 |---|---|---|
 | Before dispatch | `preflight_worker` | Starts a short probe in the target worker's environment, or runs the acceptance commands for real first |

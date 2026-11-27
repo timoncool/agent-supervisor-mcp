@@ -2,6 +2,16 @@
 
 The [README](../README.en.md) covers getting started. Every tool argument, where the guard and acceptance draw their lines, which directories the sandbox opens, and the full list of environment variables are here.
 
+## Calling tools from the command line
+
+```bash
+agent-supervisor <tool> [--args '<json>' | --args-file <path>]
+```
+
+The CLI uses the same tools and arguments as MCP, starting a new process with fresh code for each call. `--args` supplies JSON directly; `--args-file` reads JSON from a file. With neither, the arguments are an empty object. The tool's response text (JSON) is written unchanged to stdout with a trailing newline.
+
+Exit code `0` means success, `1` means the tool response has `isError`, and `2` means an unknown tool (`unknown_tool`) or invalid arguments (`invalid_arguments`, including JSON parsing or schema validation failures). With no arguments or `--help` alone, the CLI lists tools and descriptions; `agent-supervisor <tool> --help` shows that tool's description and argument keys.
+
 ## Tools
 
 Fifteen by default; three more are registered only with `AGENT_SUPERVISOR_TOOLS=all`. Every argument is snake_case, and an unknown or misspelled argument is refused rather than ignored. A failed call sets MCP `isError` and carries a stable `error` code.

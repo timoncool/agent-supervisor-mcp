@@ -110,6 +110,8 @@ agent-supervisor-web     # 或 npx -p agent-supervisor-mcp agent-supervisor-web
 
 默认 15 个。入参和边界见[参考手册](docs/reference.md#工具)。
 
+命令行也能调用同样的 MCP 工具和参数：`agent-supervisor <tool> [--args '<json>' | --args-file <path>]`。每次调用都是使用最新代码的新进程，stdout 输出与 MCP 相同的响应文本（JSON）；退出码 `0` 为成功，`1` 为工具返回 `isError`，`2` 为未知工具（`unknown_tool`）或参数无效（`invalid_arguments`）。不带参数或用 `--help` 列出工具及描述；`agent-supervisor <tool> --help` 显示工具描述和参数键。
+
 | 阶段 | 工具 | 干什么 |
 |---|---|---|
 | 派单前 | `preflight_worker` | 用和目标 worker 相同的环境起一个短 probe，或者先把验收命令真跑一遍 |
