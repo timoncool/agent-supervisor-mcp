@@ -12,8 +12,8 @@ import { homedir } from "node:os";
 
 const quoteCommand = (path) => process.platform === "win32" ? `"${path.replace(/"/g, '""')}"` : `'${path.replace(/'/g, "'\\''")}'`;
 
-// The native binary is spawned directly: codex.js starts it without windowsHide,
-// which gives console windows to its commands when the run host has no console.
+// The native binary is resolved before codex.js: its commands must share the
+// run host's console.
 const CODEX_NPM_ENTRY = {
   pkg: "@openai/codex",
   bin: "bin/codex.js",

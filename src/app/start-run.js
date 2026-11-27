@@ -81,10 +81,9 @@ export async function startTrackedRun(job) {
   return started;
 }
 
-// A detached Windows process has no console, so every console program it starts
-// opens a window. `start /b` puts the run host into this process's hidden
-// console and outside the job that ends this process's children with it. That
-// path has no IPC channel: the job and the startup answer travel as files.
+// On Windows the run host must share this process's hidden console and live
+// outside the job that ends this process's children: `start /b` gives both.
+// That path has no IPC channel, so the job and the startup answer are files.
 async function startHostInSharedConsole(job, hostLogPath) {
   const base = hostLogPath.replace(/\.host\.log$/, "");
   const jobPath = `${base}.job.json`;
