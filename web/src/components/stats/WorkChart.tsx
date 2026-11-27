@@ -36,7 +36,7 @@ export function WorkChart({ slots, weekly, format }: { slots: Slot[]; weekly: bo
         ))}
       </ul>
       {hasWork
-        ? <ChartPlot slots={slots} ariaLabel={t("chart.aria", { title, count, n: format.number(count) })} />
+        ? <ChartPlot slots={slots} ariaLabel={t("chart.aria", { title, count, n: format.number(count) })} format={format} />
         : <p className="t-subhead grid h-[300px] place-items-center text-center text-label-2">{t("chart.empty")}</p>}
     </section>
   );
