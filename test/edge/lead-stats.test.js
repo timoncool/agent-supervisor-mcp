@@ -27,6 +27,12 @@ test("note_worker records lead decisions and the stats endpoint counts them", as
     assert.equal(body.total.reworks, 1);
     assert.equal(body.total.fable, 1);
     assert.equal(body.total.review_ok, 1);
+    assert.equal(body.total.lead_notes, 3);
+    assert.equal(typeof body.first_try_judged, "number");
+    const models = Object.values(body.by_model);
+    assert.equal(models.length, 1);
+    assert.equal(models[0].tasks, 1);
+    assert.ok("cached_input_tokens" in models[0] && "pricing" in models[0]);
     assert.ok(body.daily.length >= 1);
   } finally {
     await web.close();
