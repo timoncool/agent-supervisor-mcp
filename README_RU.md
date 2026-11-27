@@ -1,6 +1,6 @@
 <div align="center">
 
-# agent-supervisor-mcp (форк для Windows)
+# agent-supervisor-mcp — русифицированный форк для Windows
 
 **MCP-сервер, через который Claude Code раздаёт задачи многим Codex-работникам сразу, каждому в своей git worktree, и вливает их работу только после прохождения тестов.**
 
@@ -15,7 +15,7 @@
 
 </div>
 
-agent-supervisor-mcp отдаёт задачи по коду из Claude Code (или любого MCP-клиента) работникам Codex CLI: ведущая модель планирует и проверяет, а код пишут работники по вашей подписке ChatGPT. Этот форк [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) сделан для ежедневной работы на Windows: без консольных окон, с доской на русском, английском и китайском, «Сводкой» по работе и расходам, CLI и более строгой приёмкой.
+agent-supervisor-mcp отдаёт задачи по коду из Claude Code (или любого MCP-клиента) работникам Codex CLI: ведущая модель планирует и проверяет, а код пишут работники по вашей подписке ChatGPT. Этот форк [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) русифицирован и сделан для ежедневной работы на Windows: без консольных окон, с доской на русском, английском и китайском, «Сводкой» по работе и расходам, CLI и более строгой приёмкой.
 
 ## Возможности
 

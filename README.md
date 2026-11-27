@@ -1,6 +1,6 @@
 <div align="center">
 
-# agent-supervisor-mcp (Windows fork)
+# agent-supervisor-mcp — Windows fork, localized (Russian, English, Chinese)
 
 **An MCP server that lets Claude Code run many Codex workers in parallel, each in its own git worktree, and land their work only after the tests pass.**
 
@@ -15,7 +15,7 @@
 
 </div>
 
-agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to Codex CLI workers — the lead model plans and reviews, the workers write the code on your ChatGPT subscription. This fork of [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) is built for daily use on Windows: no console windows, a board in English, Russian and Chinese with a Summary of work and cost, a CLI, and stricter acceptance.
+agent-supervisor-mcp hands coding tasks from Claude Code (or any MCP client) to Codex CLI workers — the lead model plans and reviews, the workers write the code on your ChatGPT subscription. This fork of [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp) is localized into Russian and built for daily use on Windows: no console windows, a board in English, Russian and Chinese with a Summary of work and cost, a CLI, and stricter acceptance.
 
 ## Features
 
