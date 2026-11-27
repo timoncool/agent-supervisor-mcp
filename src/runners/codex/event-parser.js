@@ -10,11 +10,15 @@ function getEventType(event) {
   return event.type ?? event.event ?? event.msg?.type ?? "unknown";
 }
 
-function getItem(event) {
+export function getItem(event) {
   return event.item ?? event.msg?.item ?? event.data?.item ?? null;
 }
 
-function inferCommand(item) {
+export function getItemType(item) {
+  return item?.type ?? item?.kind ?? item?.name ?? null;
+}
+
+export function inferCommand(item) {
   return item?.command ?? item?.cmd ?? item?.arguments?.cmd ?? item?.text ?? null;
 }
 
@@ -30,7 +34,7 @@ function inferAgentMessage(item) {
 // this one extraction.
 export function extractAgentMessage(event) {
   const item = getItem(event);
-  const itemType = item?.type ?? item?.kind ?? item?.name ?? null;
+  const itemType = getItemType(item);
   if (itemType !== "agent_message") return null;
   return inferAgentMessage(item);
 }
@@ -141,7 +145,7 @@ export function applyCodexEvent(task, event) {
   const now = new Date().toISOString();
   const eventType = getEventType(event);
   const item = getItem(event);
-  const itemType = item?.type ?? item?.kind ?? item?.name ?? null;
+  const itemType = getItemType(item);
   let next = {
     ...task,
     last_event_at: now,

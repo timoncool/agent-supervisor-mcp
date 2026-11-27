@@ -8,6 +8,7 @@ import { CLIP_KEY, restoreEventBodies } from "../../../infra/store/event-body.js
 import { readTaskEvents } from "../../../infra/store/events.js";
 import { getTask } from "../../../infra/store/tasks.js";
 import { baseBehind } from "../../../infra/worktree.js";
+import { getItem, getItemType, inferCommand } from "../../../runners/codex/event-parser.js";
 import { errorResult, textResult } from "../result.js";
 import { acceptanceInput, workspaceSetupInput } from "../schemas.js";
 import { withUpdate } from "../update-state.js";
@@ -104,9 +105,9 @@ export const getWorkerPreflightOp = {
       const events = await readTaskEvents(task_id, -1, ["item.completed"]);
       const matches = new Map();
       for (const event of events) {
-        const item = event.item ?? event.msg?.item ?? event.data?.item;
-        if ((item?.type ?? item?.kind ?? item?.name) !== "command_execution") continue;
-        const command = normalizeObservedCommand(item.command ?? item.cmd ?? item.arguments?.cmd ?? item.text);
+        const item = getItem(event);
+        if (getItemType(item) !== "command_execution") continue;
+        const command = normalizeObservedCommand(inferCommand(item));
         if (executed.has(command)) matches.set(command, event);
       }
 
@@ -117,7 +118,7 @@ export const getWorkerPreflightOp = {
         if (event[CLIP_KEY]?.missing) {
           probe.output_error = "probe output is missing from the run log";
         } else {
-          const item = event.item ?? event.msg?.item ?? event.data?.item;
+          const item = getItem(event);
           const output = item.aggregated_output ?? item.output;
           if (typeof output === "string") probe.output_tail = probeOutputTail(output);
         }
