@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { stats } from "../../i18n/stats";
 import { useT } from "../../lib/i18n";
 import type { StatsFormatters } from "./model";
@@ -49,9 +49,10 @@ export function ChartPlot({ slots, ariaLabel, format }: { slots: Slot[]; ariaLab
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    setWidth(container.getBoundingClientRect().width);
     const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
     observer.observe(container);
     return () => observer.disconnect();
