@@ -12,7 +12,16 @@ import { homedir } from "node:os";
 
 const quoteCommand = (path) => process.platform === "win32" ? `"${path.replace(/"/g, '""')}"` : `'${path.replace(/'/g, "'\\''")}'`;
 
-const CODEX_NPM_ENTRY = { pkg: "@openai/codex", bin: "bin/codex.js" };
+// The native binary is spawned directly: codex.js starts it without windowsHide,
+// which gives console windows to its commands when the run host has no console.
+const CODEX_NPM_ENTRY = {
+  pkg: "@openai/codex",
+  bin: "bin/codex.js",
+  native: [
+    "node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe",
+    "node_modules/@openai/codex-win32-arm64/vendor/aarch64-pc-windows-msvc/bin/codex.exe"
+  ]
+};
 
 // "provider/model" selects a model_providers entry of the Codex config, so one
 // stored model string carries the provider through dispatch, resume and side chat.

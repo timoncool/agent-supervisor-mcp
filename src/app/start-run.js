@@ -1,9 +1,9 @@
 import "./compose.js";
-import { spawnProcess } from "../infra/process.js";
+import { SHARED_CONSOLE_ENV, spawnProcess } from "../infra/process.js";
 import { upsertTask } from "../infra/store/tasks.js";
 import { compileWorkerContext } from "./context-compiler.js";
 import { failedStart, MAX_RUN_HOST_PROMPT_BYTES, RUN_HOST_STARTUP_TIMEOUT_MS } from "./run-state.js";
-import { closeSync, openSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // The MCP client may disappear at any point. A detached process owns the
@@ -32,6 +32,11 @@ export async function startTrackedRun(job) {
   const hostLogPath = job.logPath.endsWith(".jsonl")
     ? job.logPath.replace(/\.jsonl$/, ".host.log")
     : `${job.logPath}.host.log`;
+  if (process.platform === "win32") {
+    const started = await startHostInSharedConsole(job, hostLogPath);
+    if (!started.ok) await upsertTask(started.record);
+    return started;
+  }
   let hostLogFd;
   try {
     hostLogFd = openSync(hostLogPath, "a");
@@ -74,4 +79,46 @@ export async function startTrackedRun(job) {
   });
   if (!started.ok) await upsertTask(started.record);
   return started;
+}
+
+// A detached Windows process has no console, so every console program it starts
+// opens a window. `start /b` puts the run host into this process's hidden
+// console and outside the job that ends this process's children with it. That
+// path has no IPC channel: the job and the startup answer travel as files.
+async function startHostInSharedConsole(job, hostLogPath) {
+  const base = hostLogPath.replace(/\.host\.log$/, "");
+  const jobPath = `${base}.job.json`;
+  const ackPath = `${base}.ack.json`;
+  rmSync(ackPath, { force: true });
+  writeFileSync(jobPath, JSON.stringify(job));
+  const entry = fileURLToPath(new URL("../run-host/entry.js", import.meta.url));
+  const line = `/d /c start "" /b "${process.execPath}" "${entry}" --run-host --job-file "${jobPath}" --ack-file "${ackPath}"`;
+  let hostLogFd;
+  try {
+    hostLogFd = openSync(hostLogPath, "a");
+  } catch (error) {
+    rmSync(jobPath, { force: true });
+    return failedStart(job.record, `cannot open run host log ${hostLogPath}: ${error.message}`);
+  }
+  try {
+    spawnProcess(process.env.ComSpec || "cmd.exe", [line], {
+      stdio: ["ignore", hostLogFd, hostLogFd],
+      env: { ...process.env, [SHARED_CONSOLE_ENV]: "1" },
+      windowsVerbatimArguments: true,
+      windowsHide: false
+    }).unref();
+  } finally {
+    closeSync(hostLogFd);
+  }
+  const deadline = Date.now() + RUN_HOST_STARTUP_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (existsSync(ackPath)) {
+      const answer = JSON.parse(readFileSync(ackPath, "utf8"));
+      rmSync(ackPath, { force: true });
+      return answer;
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 100));
+  }
+  rmSync(jobPath, { force: true });
+  return failedStart(job.record, `run host startup timed out; host log: ${hostLogPath}`);
 }
