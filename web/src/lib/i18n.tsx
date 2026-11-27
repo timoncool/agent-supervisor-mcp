@@ -101,8 +101,8 @@ export function useT<M extends Messages>(dict: Dictionary<M>): (key: keyof M & s
   return useCallback((key: keyof M & string, params?: Params) => tr(dict, key, params, lang), [dict, lang]);
 }
 
-export const LANG_NAMES: Record<Lang, { full: string }> = {
-  ru: { full: "Русский" },
-  en: { full: "English" },
-  zh: { full: "中文" }
+export const LANG_NAMES: Record<Lang, { short: string; full: string }> = {
+  ru: { short: "RU", full: "Русский" },
+  en: { short: "EN", full: "English" },
+  zh: { short: "中文", full: "中文" }
 };

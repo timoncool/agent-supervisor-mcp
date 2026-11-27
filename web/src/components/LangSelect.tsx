@@ -1,5 +1,5 @@
 import { Select } from "@base-ui-components/react/select";
-import { Check, Globe } from "@phosphor-icons/react";
+import { Check } from "@phosphor-icons/react";
 import { common } from "../i18n/common";
 import { LANG_NAMES, LANG_TRIGGER_ID, LANGS, useLang, useT, type Lang } from "../lib/i18n";
 
@@ -16,10 +16,9 @@ export function LangSelect() {
       <Select.Trigger
         id={LANG_TRIGGER_ID}
         aria-label={t("lang.label")}
-        className="t-caption -my-1 flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-label-2 outline-none transition-colors duration-150 hover:bg-fill focus-visible:ring-2 focus-visible:ring-blue data-[popup-open]:bg-fill"
+        className="t-caption mono -my-1 flex h-6 shrink-0 items-center rounded-md px-1.5 text-label-2 outline-none transition-colors duration-150 hover:bg-fill focus-visible:ring-2 focus-visible:ring-blue data-[popup-open]:bg-fill"
       >
-        <Globe size={14} aria-hidden />
-        <Select.Value />
+        <Select.Value>{(value: Lang) => LANG_NAMES[value].short}</Select.Value>
       </Select.Trigger>
       <Select.Portal>
         <Select.Positioner side="top" align="end" sideOffset={6} alignItemWithTrigger={false} collisionPadding={12} className="z-50">
