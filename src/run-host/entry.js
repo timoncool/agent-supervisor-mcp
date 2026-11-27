@@ -34,8 +34,18 @@ function argValue(name) {
 const jobFile = argValue("--job-file");
 if (jobFile) {
   const ackFile = argValue("--ack-file");
-  const job = JSON.parse(readFileSync(jobFile, "utf8"));
-  rmSync(jobFile);
+  writeFileSync(`${jobFile}.pid`, String(process.pid));
+  const claimed = `${jobFile}.claimed`;
+  try {
+    renameSync(jobFile, claimed);
+  } catch (error) {
+    rmSync(`${jobFile}.pid`, { force: true });
+    console.error(`[ERROR] job ${jobFile} withdrawn before this host claimed it: ${error.message}`);
+    process.exit(1);
+  }
+  const job = JSON.parse(readFileSync(claimed, "utf8"));
+  rmSync(claimed);
+  rmSync(`${jobFile}.pid`, { force: true });
   runJob(job, (message) => {
     writeFileSync(`${ackFile}.tmp`, JSON.stringify(message));
     renameSync(`${ackFile}.tmp`, ackFile);

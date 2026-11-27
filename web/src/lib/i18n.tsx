@@ -68,6 +68,7 @@ export const LANG_TRIGGER_ID = "lang-select-trigger";
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(current);
   const setLang = useCallback((next: Lang, options: { refocus?: boolean } = {}) => {
+    if (next === current) return;
     current = next;
     try {
       localStorage.setItem(STORAGE_KEY, next);

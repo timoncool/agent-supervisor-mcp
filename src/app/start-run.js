@@ -1,9 +1,9 @@
 import "./compose.js";
-import { SHARED_CONSOLE_ENV, spawnProcess } from "../infra/process.js";
+import { runSync, SHARED_CONSOLE_ENV, spawnProcess } from "../infra/process.js";
 import { upsertTask } from "../infra/store/tasks.js";
 import { compileWorkerContext } from "./context-compiler.js";
 import { failedStart, MAX_RUN_HOST_PROMPT_BYTES, RUN_HOST_STARTUP_TIMEOUT_MS } from "./run-state.js";
-import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // The MCP client may disappear at any point. A detached process owns the
@@ -100,25 +100,61 @@ async function startHostInSharedConsole(job, hostLogPath) {
     rmSync(jobPath, { force: true });
     return failedStart(job.record, `cannot open run host log ${hostLogPath}: ${error.message}`);
   }
+  let spawnError = null;
   try {
-    spawnProcess(process.env.ComSpec || "cmd.exe", [line], {
+    const launcher = spawnProcess(process.env.ComSpec || "cmd.exe", [line], {
       stdio: ["ignore", hostLogFd, hostLogFd],
       env: { ...process.env, [SHARED_CONSOLE_ENV]: "1" },
       windowsVerbatimArguments: true,
-      windowsHide: false
-    }).unref();
+      windowsHide: true
+    });
+    launcher.on("error", (error) => {
+      spawnError = error;
+    });
+    launcher.unref();
   } finally {
     closeSync(hostLogFd);
   }
   const deadline = Date.now() + RUN_HOST_STARTUP_TIMEOUT_MS;
   while (Date.now() < deadline) {
+    if (spawnError) {
+      rmSync(jobPath, { force: true });
+      return failedStart(job.record, `run host launcher failed: ${spawnError.message}`);
+    }
     if (existsSync(ackPath)) {
-      const answer = JSON.parse(readFileSync(ackPath, "utf8"));
-      rmSync(ackPath, { force: true });
+      let answer;
+      try {
+        answer = JSON.parse(readFileSync(ackPath, "utf8"));
+      } catch (error) {
+        return failedStart(job.record, `run host answer unreadable (${error.message}); host log: ${hostLogPath}`);
+      } finally {
+        rmSync(ackPath, { force: true });
+      }
       return answer;
     }
     await new Promise((resolveWait) => setTimeout(resolveWait, 100));
   }
-  rmSync(jobPath, { force: true });
-  return failedStart(job.record, `run host startup timed out; host log: ${hostLogPath}`);
+  return failedStart(job.record, `run host startup timed out; ${abandonLateHost(jobPath)}; host log: ${hostLogPath}`);
+}
+
+// The host claims the job by renaming the job file; whoever renames it first
+// owns the start. A host that claimed it after the deadline is killed.
+function abandonLateHost(jobPath) {
+  try {
+    renameSync(jobPath, `${jobPath}.abandoned`);
+    rmSync(`${jobPath}.abandoned`, { force: true });
+    return "the host never claimed the job";
+  } catch (error) {
+    if (error.code !== "ENOENT") return `job file could not be withdrawn: ${error.message}`;
+  }
+  const pidPath = `${jobPath}.pid`;
+  if (!existsSync(pidPath)) return "the host claimed the job but left no pid";
+  const pid = Number(readFileSync(pidPath, "utf8"));
+  rmSync(pidPath, { force: true });
+  try {
+    runSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", timeout: 5000, windowsHide: true });
+    return `the late host ${pid} was stopped`;
+  } catch (error) {
+    return `the late host ${pid} could not be stopped: ${error.message}`;
+  }
 }
