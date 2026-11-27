@@ -32,7 +32,7 @@ CLI 使用与 MCP 相同的工具和参数，每次调用都是加载最新代�
 | `cleanup` | `action`, `task_ids`, `project_root`, `plan_id`, `item_ids`, `limit` | `plan`：每个 worktree 的判定和原因；`apply`：立刻清掉选中的 SAFE 项；`history`：清理记录 |
 | `find_works` | `session_id`, `query`, `limit` | 一个 session 的全部 worker，或在标题、目标、prompt、最后消息里找子串 |
 | `describe_session` | `session_id`, `title`, `note`, `objective`, `default_acceptance`, `approval_state`, `expected_revision` | 给一批活记标题、目标、默认验收和审批状态 |
-| `note_worker` | `task_id`, `kind`, `text` | 记录主线程决定，在任务事件中追加 `lead.<kind>`。`kind` 为 `review_ok` / `rework` / `fable` / `manual_fix` / `note`；`text` 可省，最多 2000 字符 |
+| `note_worker` | `task_id`, `kind`, `text`, `acceptance_waived` | 记录主线程决定，在任务事件中追加 `lead.<kind>`。`kind` 为 `review_ok` / `rework` / `fable` / `manual_fix` / `note`；`text` 可省，最多 2000 字符。验收未通过或未运行时，`review_ok` 必须通过 `acceptance_waived` 提供豁免理由（10–500 字符），理由会写入事件 |
 | `facts`（按需） | `action`, `task_id`, `fact_id`, `query`, `limit`, `cursor`, `scope`, `watched_paths`, `expires_at`, `reason` | `search` / `get` 查已验证的事实；`promote` 把候选升为已验证；`revoke` 撤销 |
 | `review`（按需） | `action`, `task_id`, `verifier_task_id`, `title`, `verdict`, `reason`, `resolution` | `start` 起一个只读、断网的 verifier；`record` / `resolve` / `get` 记结论、记收口、查记录 |
 | `get_artifact`（按需） | `artifact_id`, `max_chars` | 读一份留存的证据 |
