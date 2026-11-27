@@ -19,7 +19,7 @@ const QUALITY = [
 const VOLUME_TOP = 22;
 const VOLUME_HEIGHT = 140;
 const VOLUME_BOTTOM = VOLUME_TOP + VOLUME_HEIGHT;
-const QUALITY_TOP = VOLUME_BOTTOM + 26;
+const QUALITY_TOP = VOLUME_BOTTOM + 36;
 const QUALITY_HEIGHT = 100;
 const QUALITY_BOTTOM = QUALITY_TOP + QUALITY_HEIGHT;
 const CHART_HEIGHT = QUALITY_BOTTOM + 24;
@@ -203,7 +203,7 @@ export function ChartPlot({ slots, ariaLabel, format }: { slots: Slot[]; ariaLab
         </>}
       </svg>
       {activeSlot && slotWidth > 0 && (
-        <div aria-hidden="true" className="inset shadow-panel t-footnote pointer-events-none absolute top-4 p-2.5 wrap-anywhere tabular"
+        <div aria-hidden="true" className="inset shadow-panel border border-separator t-footnote pointer-events-none absolute top-4 p-2.5 wrap-anywhere tabular"
           style={{ left: tooltipLeft, width: tooltipWidth }}>
           {renderTooltip(activeSlot)}
         </div>

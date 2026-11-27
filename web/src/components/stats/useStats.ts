@@ -26,6 +26,7 @@ export function useStats(days: 7 | 30 | 90) {
       return data.daily.length === 0 ? { ...data, total: EMPTY_TOTALS } : data;
     },
     placeholderData: keepPreviousData,
+    retry: (failureCount, error) => !(error instanceof StatsError && error.status >= 400 && error.status < 500) && failureCount < 1,
     refetchInterval: 30_000
   });
 }
