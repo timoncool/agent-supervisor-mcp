@@ -129,6 +129,7 @@ export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Pr
   const closeRef = useRef<HTMLButtonElement>(null);
   const hasMounted = useRef(false);
   const tabsRef = useRef<HTMLDivElement>(null);
+  const [tabsMask, setTabsMask] = useState<string>();
   const { data: worker, error, errorUpdatedAt, isFetching, isSuccess, refetch } = useWorker(workerId);
   const { data: eventData } = useEvents(workerId, tab === "events");
   const loadedWorkerId = worker?.id;
@@ -154,7 +155,28 @@ export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Pr
   }, [focusClose]);
 
   useLayoutEffect(() => {
-    tabsRef.current?.querySelector<HTMLElement>(`[data-value="${tab}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const tabs = tabsRef.current;
+    if (!tabs) return;
+
+    const updateMask = () => {
+      const { scrollLeft, clientWidth, scrollWidth } = tabs;
+      const left = scrollLeft > 1;
+      const right = scrollLeft + clientWidth < scrollWidth - 1;
+      const leftStops = left ? "transparent, black 24px" : "black";
+      const rightStops = right ? "black calc(100% - 24px), transparent" : "black";
+      setTabsMask(left || right ? `linear-gradient(to right, ${leftStops}, ${rightStops})` : undefined);
+    };
+
+    tabs.querySelector<HTMLElement>(`[data-value="${tab}"]`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    updateMask();
+    tabs.addEventListener("scroll", updateMask, { passive: true });
+    const observer = new ResizeObserver(updateMask);
+    observer.observe(tabs);
+    if (tabs.firstElementChild) observer.observe(tabs.firstElementChild);
+    return () => {
+      tabs.removeEventListener("scroll", updateMask);
+      observer.disconnect();
+    };
   }, [tab, loadedWorkerId]);
 
   const counts: Partial<Record<TabValue, number>> = worker
@@ -224,7 +246,11 @@ export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Pr
 
           {/* 3. Tabs fixed, content below scrolls. The side chat owns its own scroll. */}
           <Tabs.Root value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex min-h-0 flex-1 flex-col">
-            <div ref={tabsRef} className="mx-6 mt-3 shrink-0 overflow-x-auto py-1 [scrollbar-width:none]!">
+            <div
+              ref={tabsRef}
+              className="mx-6 mt-3 shrink-0 overflow-x-auto py-1 [scrollbar-width:none]!"
+              style={{ maskImage: tabsMask, WebkitMaskImage: tabsMask, scrollPaddingInline: "24px" }}
+            >
               <Segmented value={tab} segments={TABS.map((t) => ({ value: t.value, label: tr(board, `tab.${t.value}`), count: counts[t.value] }))} />
             </div>
 

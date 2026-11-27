@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Tabs } from "@base-ui-components/react/tabs";
+import { ApiError } from "../api";
 import { stats } from "../i18n/stats";
 import { useLang, useT } from "../lib/i18n";
 import { Segmented } from "./Segmented";
@@ -8,7 +9,7 @@ import { ModelTable } from "./stats/ModelTable";
 import { Tiles } from "./stats/Tiles";
 import { WorkChart } from "./stats/WorkChart";
 import { chartSlots, fillDays, makeStatsFormatters, periodLabel, tileValues } from "./stats/model";
-import { StatsError, useStats } from "./stats/useStats";
+import { useStats } from "./stats/useStats";
 import type { StatsResponse } from "./stats/types";
 
 const PERIODS = [7, 30, 90] as const;
@@ -80,7 +81,8 @@ export function StatsScreen() {
     }
   };
   const error = query.error;
-  const oldServer = error instanceof StatsError && error.status === 404;
+  const oldServer = error instanceof ApiError && error.status === 404;
+  const errorMessage = error instanceof ApiError ? "HTTP " + error.status : error?.message;
   const daily = data ? fillDays(data, today) : undefined;
   const weekly = data?.days === 90;
 
@@ -99,11 +101,11 @@ export function StatsScreen() {
           </header>
 
           <Tabs.Panel value={period} className="mt-4 space-y-4" aria-busy={!data && query.isPending}>
-            {error && (
+            {errorMessage !== undefined && (
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p role="status" className={data ? "t-footnote text-red" : "t-subhead text-red"}>
-                  {data ? t("error.refresh", { message: error.message }) :
-                    oldServer ? t("error.oldServer") : t("error.load", { message: error.message })}
+                  {data ? t("error.refresh", { message: errorMessage }) :
+                    oldServer ? t("error.oldServer") : t("error.load", { message: errorMessage })}
                 </p>
                 <button type="button" className="t-subhead cursor-pointer text-blue" onClick={() => void query.refetch()}>
                   {t("retry")}

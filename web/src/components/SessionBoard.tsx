@@ -20,7 +20,7 @@ function Stat({ label, value, tone = "" }: { label: string; value: number; tone?
   return (
     <span className="t-subhead inline-flex items-baseline gap-1.5">
       <span className={`tabular font-semibold ${tone}`}>{value}</span>
-      <span className="text-label-2">{label}</span>
+      <span className="whitespace-nowrap text-label-2">{label}</span>
     </span>
   );
 }
@@ -32,7 +32,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
   const name = session.title ?? sessionLabel(session.id, session.unsessioned);
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="shrink-0 px-4 pt-7 pb-4 md:px-8">
+      <header className="@container shrink-0 px-4 pt-7 pb-4 md:px-8">
         <motion.div key={session.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
           <HoverCard side="bottom" render={<h2 className={`t-title1 inline-block max-w-full truncate ${session.unsessioned ? "text-label-2" : ""}`}>{name}</h2>}>
             <div className="t-headline">{name}</div>
@@ -51,14 +51,14 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
           {session.note && <p className="t-subhead mt-2 max-w-[72ch] text-label">{session.note}</p>}
         </motion.div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="mt-4 grid grid-cols-2 items-center gap-x-4 gap-y-1 @min-[360px]:grid-cols-3 @min-[760px]:flex @min-[760px]:flex-wrap @min-[760px]:gap-x-5 @min-[760px]:gap-y-2">
           <Stat label={tr(board, "session.workers")} value={session.worker_count} />
           <Stat label={tr(board, "session.running")} value={c.running ?? 0} tone={live ? "text-orange" : "text-label-3"} />
           <Stat label={tr(board, "session.completed")} value={c.completed ?? 0} tone="text-green" />
           <Stat label={tr(board, "session.failed")} value={c.failed ?? 0} tone={(c.failed ?? 0) > 0 ? "text-red" : "text-label-3"} />
           <Stat label={tr(board, "session.timedOut")} value={c.timed_out ?? 0} tone={(c.timed_out ?? 0) > 0 ? "text-purple" : "text-label-3"} />
           <Stat label={tr(board, "session.lost")} value={c.lost ?? 0} tone={(c.lost ?? 0) > 0 ? "text-indigo" : "text-label-3"} />
-          <div className="w-40"><StatusBar counts={session.counts} total={session.worker_count} /></div>
+          <div className="col-span-2 w-full @min-[360px]:col-span-3 @min-[760px]:w-40"><StatusBar counts={session.counts} total={session.worker_count} /></div>
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
