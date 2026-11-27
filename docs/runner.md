@@ -67,11 +67,9 @@ A runner whose events are in this vocabulary can use the shared reducer for `par
 
 ## Loading a runner that is not built in
 
-By package name: install `agent-supervisor-runner-<name>` where the supervisor can import it, and pass `runner: "<name>"`.
+Only by file: set `AGENT_SUPERVISOR_RUNNER_<NAME>` to its path and pass `runner: "<name>"`. Nothing is loaded by npm package name, so no installed package can run its code by being asked for as a runner; without the variable the call fails with `runner_unknown`.
 
-By file, for one under development: set `AGENT_SUPERVISOR_RUNNER_<NAME>` to its path.
-
-Either way the module exports the object as `runner` or as its default export, and its `name` must be the name it was asked for by.
+The module exports the object as `runner` or as its default export, and its `name` must be the name it was asked for by.
 
 ## Checking one
 
