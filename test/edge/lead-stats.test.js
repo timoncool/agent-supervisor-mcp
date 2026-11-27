@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { dispatchArgs, tempHome, waitFor, withMcp, startWebServer } from "./helpers.js";
 
@@ -38,6 +39,31 @@ test("note_worker records lead decisions and the stats endpoint counts them", as
     assert.equal(models[0].tasks, 1);
     assert.ok("cached_input_tokens" in models[0] && "pricing" in models[0]);
     assert.ok(body.daily.length >= 1);
+  } finally {
+    await web.close();
+  }
+});
+
+test("stats starts 30 UTC days including today and returns zero totals for a quiet home", async () => {
+  const home = await tempHome("supervisor-quiet-stats-");
+  await mkdir(join(home, "data"));
+  const web = await startWebServer({ SUPERVISOR_HOME: home });
+  try {
+    const before = new Date();
+    const { status, body } = await web.get("/api/stats?days=30");
+    const after = new Date();
+    assert.equal(status, 200, JSON.stringify(body));
+    assert.equal(body.days, 30);
+    const expectedStarts = [before, after].map((now) =>
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 29)).toISOString()
+    );
+    assert.ok(expectedStarts.includes(body.since), `Unexpected stats start: ${body.since}`);
+    assert.deepEqual(body.daily, []);
+    assert.deepEqual(body.total, {
+      dispatched: 0, accepted: 0, acceptance_failed: 0, landed: 0, failed: 0,
+      probes: 0, reworks: 0, fable: 0, manual_fixes: 0, review_ok: 0, lead_notes: 0,
+      input_tokens: 0, cached_input_tokens: 0, output_tokens: 0, credits: 0, usd: 0
+    });
   } finally {
     await web.close();
   }

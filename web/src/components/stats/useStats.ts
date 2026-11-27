@@ -1,5 +1,4 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { EMPTY_TOTALS } from "./model";
 import type { StatsResponse } from "./types";
 
 export class StatsError extends Error {
@@ -21,9 +20,7 @@ export function useStats(days: 7 | 30 | 90) {
         headers: { accept: "application/json" }
       });
       if (!response.ok) throw new StatsError(response.status);
-      const data = (await response.json()) as StatsResponse;
-      // The server's reduction returns an empty object when there are no daily rows.
-      return data.daily.length === 0 ? { ...data, total: EMPTY_TOTALS } : data;
+      return (await response.json()) as StatsResponse;
     },
     placeholderData: keepPreviousData,
     retry: (failureCount, error) => !(error instanceof StatsError && error.status >= 400 && error.status < 500) && failureCount < 1,

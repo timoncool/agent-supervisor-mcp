@@ -46,7 +46,10 @@ function emptyDay(date) {
 
 export function workerStats({ days = 30, now = new Date() } = {}) {
   const db = openDb();
-  const since = new Date(now.getTime() - days * 86400000).toISOString();
+  const start = new Date(now.getTime());
+  start.setUTCHours(0, 0, 0, 0);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  const since = start.toISOString();
   const byDay = new Map();
   const at = (date) => {
     if (!byDay.has(date)) byDay.set(date, emptyDay(date));
@@ -115,10 +118,11 @@ export function workerStats({ days = 30, now = new Date() } = {}) {
     }
   }
   const daily = [...byDay.values()].sort((a, b) => a.date.localeCompare(b.date));
-  const total = daily.reduce((sum, row) => {
-    for (const key of Object.keys(row)) if (key !== "date") sum[key] = (sum[key] ?? 0) + row[key];
-    return sum;
-  }, {});
+  const { date: _date, ...total } = emptyDay();
+  const counters = Object.keys(total);
+  for (const row of daily) {
+    for (const key of counters) total[key] += row[key];
+  }
   // First-try is judged on a task's first verdict ever, counted when that
   // verdict falls inside the window. A cancelled or interrupted run is no
   // verdict on the work.
