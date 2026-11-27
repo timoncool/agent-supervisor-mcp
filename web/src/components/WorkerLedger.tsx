@@ -52,7 +52,7 @@ function Row({ worker, active, onSelect, index }: { worker: WorkerRow; active: b
             render={<span className="t-headline block truncate">{worker.title}</span>}
           >
             <div className="t-headline">{worker.title}</div>
-            <CardRow label="Goal">{worker.goal ?? "—"}</CardRow>
+            <CardRow label={tr(board, "ledger.goal")}>{worker.goal ?? "—"}</CardRow>
             {worker.owned_paths.length > 0 && (
               <CardRow label={tr(board, "ownedPaths")}>
                 <ul className="mono space-y-0.5">{worker.owned_paths.map((p) => <li key={p} className="truncate" title={p}>{relativeToWorktree(p, worker.project_root)}</li>)}</ul>
@@ -86,7 +86,7 @@ export function WorkerLedger({ pages, hasMore, loadingMore, loadMore, selected, 
     <section className="inset @container overflow-hidden">
       <div className={`grid ${GRID} gap-x-4 border-b border-separator-soft px-4 py-2`}>
         <span className="t-footnote text-label-2">{tr(board, "ledger.status")}</span>
-        <span className="t-footnote text-label-2">Worker</span>
+        <span className="t-footnote text-label-2">{tr(board, "ledger.worker")}</span>
         <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`}>{tr(board, "duration")}</span>
         <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`} title={tr(board, "ledger.filesTitle")}>{tr(board, "ledger.files")}</span>
         <span className={`${EXTRA_COLUMN} t-footnote text-right text-label-2`}>{tr(board, "ledger.commands")}</span>

@@ -35,11 +35,16 @@ function writeHash(route: Route) {
 export function App() {
   const t = useT(common);
   const isDesktop = useMediaQuery("(min-width: 768px)", { noSsr: true });
+  const isWide = useMediaQuery("(min-width: 1120px)", { noSsr: true });
   const [route, setRoute] = useState(readHash);
   const [railOpen, setRailOpen] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-  const previousWorker = useRef(route.worker);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const workerToRefocus = useRef<string | null>(null);
+  const drawerOpen = route.worker !== null;
+  const phoneWorker = !isDesktop && drawerOpen;
+  const overlayWorker = !isWide && drawerOpen;
   const [drawerWidth, setDrawerWidth] = useState(readDrawerWidth);
   const onResize = useCallback((fraction: number) => {
     setDrawerWidth(fraction);
@@ -49,10 +54,17 @@ export function App() {
       // per-viewer convenience only
     }
   }, []);
-  useEffect(() => {
+  const changeRoute = useCallback((next: Route, fromCloseWorker = false) => {
+    const restoreFocus = overlayWorker && next.worker === null &&
+      (fromCloseWorker || drawerRef.current?.contains(document.activeElement));
+    workerToRefocus.current = restoreFocus ? route.worker : null;
+    setRoute(next);
+  }, [overlayWorker, route.worker]);
+
+  useLayoutEffect(() => {
     const sync = () => {
       setRailOpen(false);
-      setRoute(readHash());
+      changeRoute(readHash());
     };
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
@@ -60,7 +72,7 @@ export function App() {
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
     };
-  }, []);
+  }, [changeRoute]);
 
   const overviewQuery = useOverview();
   const overview = overviewQuery.data?.pages[0];
@@ -71,25 +83,28 @@ export function App() {
   const session = sessionQuery.data?.pages[0];
   const sessionError = sessionQuery.error;
 
-  const go = useCallback((s: string | null, w: string | null) => {
+  const go = useCallback((s: string | null, w: string | null, fromCloseWorker = false) => {
     const next = { stats: false, session: s, worker: w };
     writeHash(next);
-    setRoute(next);
-  }, []);
+    changeRoute(next, fromCloseWorker);
+  }, [changeRoute]);
+  const closeWorker = useCallback(() => {
+    go(sessionId, null, true);
+  }, [go, sessionId]);
   const openStats = useCallback(() => {
     setRailOpen(false);
     const next = { stats: true, session: null, worker: null };
     writeHash(next);
-    setRoute(next);
-  }, []);
+    changeRoute(next);
+  }, [changeRoute]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !railOpen && route.worker) go(route.session, null);
+      if (e.key === "Escape" && !railOpen && drawerOpen) closeWorker();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, go, railOpen]);
+  }, [closeWorker, drawerOpen, railOpen]);
 
   useLayoutEffect(() => {
     if (!isDesktop || !railOpen) return;
@@ -98,16 +113,14 @@ export function App() {
   }, [isDesktop, railOpen]);
 
   useLayoutEffect(() => {
-    const closedWorker = previousWorker.current;
-    previousWorker.current = route.worker;
-    if (isDesktop || route.worker || !closedWorker) return;
+    const closedWorker = workerToRefocus.current;
+    if (drawerOpen || closedWorker === null) return;
+    workerToRefocus.current = null;
     const main = mainRef.current;
     const row = main?.querySelector<HTMLElement>(`[data-worker-id="${CSS.escape(closedWorker)}"]`);
     (row ?? main)?.focus();
-  }, [isDesktop, route.worker]);
+  }, [drawerOpen]);
 
-  const drawerOpen = route.worker !== null;
-  const narrowWorkerOpen = !isDesktop && drawerOpen;
   const rail = (
     <SessionRail
       pages={overviewQuery.data?.pages}
@@ -129,14 +142,14 @@ export function App() {
     <div
       ref={boardRef}
       className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[280px_minmax(0,1fr)_auto_var(--drawer)] md:grid-rows-none"
-      style={{ ["--drawer" as string]: drawerOpen ? `${Math.round(drawerWidth * 10000) / 100}%` : "0px" }}
+      style={{ ["--drawer" as string]: isWide && drawerOpen ? `min(${Math.round(drawerWidth * 10000) / 100}%, calc(100vw - 280px - 360px))` : "0px" }}
     >
       {isDesktop ? rail : (
-        <RailDrawer open={railOpen} onOpenChange={setRailOpen} inert={narrowWorkerOpen}>
+        <RailDrawer open={railOpen} onOpenChange={setRailOpen} inert={phoneWorker}>
           {rail}
         </RailDrawer>
       )}
-      <main ref={mainRef} className="min-h-0 min-w-0 outline-none" tabIndex={-1} inert={narrowWorkerOpen}>
+      <main ref={mainRef} className="min-h-0 min-w-0 outline-none md:col-start-2 md:row-start-1" tabIndex={-1} inert={overlayWorker}>
         {route.stats && <StatsScreen />}
         {!route.stats && overviewError && <p className="t-subhead p-8 text-red">{t("backendDown", { message: overviewError.message })}</p>}
         {!route.stats && !overviewError && !session && !sessionError && <p className="t-subhead p-8 text-label-2">{overview ? t("pickSession") : t("loading")}</p>}
@@ -152,11 +165,17 @@ export function App() {
           />
         )}
       </main>
-      <div className={drawerOpen ? "hidden h-full min-h-0 md:block" : "hidden"}>{drawerOpen && <Resizer onChange={onResize} />}</div>
-      <div className={`min-h-0 overflow-hidden ${narrowWorkerOpen ? "fixed inset-0 z-40 bg-bg" : drawerOpen ? "" : "hidden md:block"}`}>
+      {isWide && drawerOpen && (
+        <div className="col-start-3 row-start-1 h-full min-h-0"><Resizer onChange={onResize} /></div>
+      )}
+      <div
+        ref={drawerRef}
+        className={`min-h-0 overflow-hidden ${phoneWorker ? "fixed inset-0 z-40 bg-bg" : overlayWorker ? "relative z-10 col-start-2 row-start-1 bg-bg" : "col-start-4 row-start-1"} ${drawerOpen ? "" : "hidden md:block"}`}
+        inert={!drawerOpen}
+      >
         <AnimatePresence>
           {drawerOpen && route.worker && (
-            <WorkerDrawer key={route.worker} workerId={route.worker} focusClose={narrowWorkerOpen} onClose={() => go(sessionId, null)} onOpenWorker={(id) => go(sessionId, id)} />
+            <WorkerDrawer key={route.worker} workerId={route.worker} focusClose={overlayWorker} onClose={closeWorker} onOpenWorker={(id) => go(sessionId, id)} />
           )}
         </AnimatePresence>
       </div>

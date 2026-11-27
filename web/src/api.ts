@@ -127,9 +127,19 @@ export interface VersionCheck {
   notice: string | null;
 }
 
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, path: string) {
+    super(`${status} ${path}`);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 async function get<T>(path: string): Promise<T> {
   const response = await fetch(path, { headers: { accept: "application/json" } });
-  if (!response.ok) throw new Error(`${response.status} ${path}`);
+  if (!response.ok) throw new ApiError(response.status, path);
   return (await response.json()) as T;
 }
 
@@ -177,6 +187,7 @@ export function useWorker(id: string | null) {
     queryKey: ["worker", id],
     queryFn: () => get<WorkerDetail>(`/api/workers/${encodeURIComponent(id!)}`),
     enabled: id !== null,
+    retry: (failureCount, error) => !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 1,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       return status === "running" || status === "queued" ? LIVE_MS : false;

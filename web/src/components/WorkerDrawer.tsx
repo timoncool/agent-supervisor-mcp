@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Tabs } from "@base-ui-components/react/tabs";
 import { motion } from "motion/react";
 import { X } from "@phosphor-icons/react";
-import { useEvents, useWorker, type WorkerDetail } from "../api";
+import { ApiError, useEvents, useWorker, type WorkerDetail } from "../api";
 import { board } from "../i18n/board";
 import { clock, duration, relativeToWorktree, tokens } from "../lib/format";
 import { tr } from "../lib/i18n";
@@ -125,14 +125,32 @@ type TabValue = (typeof TABS)[number]["value"];
 
 export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Props) {
   const [tab, setTab] = useState<TabValue>("report");
+  const drawerRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const hasMounted = useRef(false);
   const tabsRef = useRef<HTMLDivElement>(null);
-  const { data: worker, error } = useWorker(workerId);
+  const { data: worker, error, errorUpdatedAt, isFetching, isSuccess, refetch } = useWorker(workerId);
   const { data: eventData } = useEvents(workerId, tab === "events");
   const loadedWorkerId = worker?.id;
+  const [previousError, setPreviousError] = useState<Error | null>(null);
+  // A refetch without cached worker data clears the query error until it settles.
+  if (error && error !== previousError) setPreviousError(error);
+  else if (isSuccess && previousError) setPreviousError(null);
+  const loadError = isSuccess ? null : error ?? previousError;
+  const errorStatus = loadError instanceof ApiError ? loadError.status : null;
 
   useLayoutEffect(() => {
-    if (focusClose) closeRef.current?.focus({ preventScroll: true });
+    const mounting = !hasMounted.current;
+    hasMounted.current = true;
+    if (!focusClose) return;
+
+    const active = document.activeElement;
+    const shouldFocusClose = mounting
+      ? !drawerRef.current?.contains(active) && !active?.closest("aside")
+      : active === document.body || Boolean(active?.closest("main"));
+    if (shouldFocusClose) {
+      closeRef.current?.focus({ preventScroll: true });
+    }
   }, [focusClose]);
 
   useLayoutEffect(() => {
@@ -149,6 +167,7 @@ export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Pr
 
   return (
     <motion.section
+      ref={drawerRef}
       initial={{ x: 32, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 32, opacity: 0 }}
@@ -159,7 +178,21 @@ export function WorkerDrawer({ workerId, focusClose, onClose, onOpenWorker }: Pr
       <button ref={closeRef} type="button" onClick={onClose} aria-label={tr(board, "close")} className="absolute top-5 right-6 flex h-11 w-11 items-center justify-center rounded-full bg-fill text-label-2 outline-none hover:bg-fill-2 focus-visible:ring-2 focus-visible:ring-blue md:h-7 md:w-7">
         <X size={14} weight="bold" />
       </button>
-      {!worker && <p className="t-subhead p-8 pr-20 text-label-2">{error ? tr(board, "loadFailed", { message: error.message }) : tr(board, "loading")}</p>}
+      {!worker && loadError && (
+        <div className="p-8 pr-20">
+          <p key={errorUpdatedAt} role="alert" className="t-subhead text-label">
+            {errorStatus === 404 ? tr(board, "drawer.notFound") : errorStatus === null ? tr(board, "drawer.offline") : tr(board, "drawer.serverError", { status: errorStatus })}
+          </p>
+          {errorStatus !== 404 && (
+            <button type="button" className="t-subhead mt-2 min-h-11 text-blue md:min-h-0" aria-disabled={isFetching} onClick={() => {
+              if (!isFetching) void refetch();
+            }}>
+              {tr(board, isFetching ? "drawer.retrying" : "drawer.retry")}
+            </button>
+          )}
+        </div>
+      )}
+      {!worker && !loadError && <p className="t-subhead p-8 pr-20 text-label-2">{tr(board, "loading")}</p>}
       {worker && (
         <>
           {/* 1. Identity: who this worker is and what it is doing now. Fixed. */}

@@ -36,7 +36,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
         <motion.div key={session.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
           <HoverCard side="bottom" render={<h2 className={`t-title1 inline-block max-w-full truncate ${session.unsessioned ? "text-label-2" : ""}`}>{name}</h2>}>
             <div className="t-headline">{name}</div>
-            <CardRow label="Session id"><span className="mono">{session.id}</span></CardRow>
+            <CardRow label={tr(board, "session.id")}><span className="mono">{session.id}</span></CardRow>
             <CardRow label={tr(board, "session.note")}>{session.note ?? (session.title_derived ? tr(board, "session.noNote") : "—")}</CardRow>
             {session.project_roots.length > 0 && (
               <CardRow label={tr(board, "session.roots")}><ul className="mono space-y-0.5">{session.project_roots.map((p) => <li key={p} className="truncate" title={p}>{p}</li>)}</ul></CardRow>
@@ -80,11 +80,11 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
             </motion.section>
           ) : session.last_report ? (
             <motion.section key="last" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden">
-              <div className="inset mt-5 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <span className="group-header">{tr(board, "session.lastReport")}</span>
-                  <button type="button" onClick={() => onSelectWorker(session.last_report!.id)} className="t-footnote truncate text-blue">{session.last_report.title}</button>
-                  <span className="t-caption ml-auto shrink-0 text-label-2">{relative(session.last_report.at)}</span>
+              <div className="inset @container mt-5 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 @min-[480px]:flex-nowrap">
+                  <span className="group-header shrink-0 whitespace-nowrap">{tr(board, "session.lastReport")}</span>
+                  <button type="button" onClick={() => onSelectWorker(session.last_report!.id)} className="t-footnote order-last w-full truncate text-left text-blue @min-[480px]:order-none @min-[480px]:w-auto">{session.last_report.title}</button>
+                  <span className="t-caption ml-auto shrink-0 whitespace-nowrap text-label-2">{relative(session.last_report.at)}</span>
                 </div>
                 <p className="t-subhead mt-1 line-clamp-2 text-label">{plain(session.last_report.text, 260)}</p>
               </div>
