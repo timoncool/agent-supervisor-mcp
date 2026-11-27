@@ -2,8 +2,10 @@ import { runAcceptance } from "../../../app/acceptance.js";
 import { createCodexWorker } from "../../../app/dispatch.js";
 import { createFollowupWorker } from "../../../app/followup.js";
 import { resumeCodexWorker } from "../../../app/resume.js";
-import { readPreflightResult } from "../../../domain/worker-preflight.js";
+import { normalizeObservedCommand, readPreflightResult } from "../../../domain/worker-preflight.js";
 import { runGit } from "../../../infra/git.js";
+import { CLIP_KEY, restoreEventBodies } from "../../../infra/store/event-body.js";
+import { readTaskEvents } from "../../../infra/store/events.js";
 import { getTask } from "../../../infra/store/tasks.js";
 import { baseBehind } from "../../../infra/worktree.js";
 import { errorResult, textResult } from "../result.js";
@@ -84,12 +86,47 @@ export const preflightCodexWorkerOp = {
   }
 };
 
+function probeOutputTail(output) {
+  return output?.replace(/\r?\n$/, "").split(/\r?\n/).slice(-40).join("\n") ?? null;
+}
+
 export const getWorkerPreflightOp = {
   input: z.object({ task_id: z.string().min(1) }),
   handler: async ({ task_id }) => {
     const task = await getTask(task_id);
     if (!task) return textResult({ error: "task_not_found", task_id });
-    return textResult(readPreflightResult(task));
+    const result = readPreflightResult(task);
+    if (result.error) return textResult(result);
+
+    const executed = new Map(result.probes.filter((probe) => probe.executed)
+      .map((probe) => [normalizeObservedCommand(probe.command), probe]));
+    if (executed.size > 0) {
+      const events = await readTaskEvents(task_id, -1, ["item.completed"]);
+      const matches = new Map();
+      for (const event of events) {
+        const item = event.item ?? event.msg?.item ?? event.data?.item;
+        if ((item?.type ?? item?.kind ?? item?.name) !== "command_execution") continue;
+        const command = normalizeObservedCommand(item.command ?? item.cmd ?? item.arguments?.cmd ?? item.text);
+        if (executed.has(command)) matches.set(command, event);
+      }
+
+      const restored = await restoreEventBodies([...matches.values()], task.run_log);
+      for (const [index, command] of [...matches.keys()].entries()) {
+        const event = restored[index];
+        const probe = executed.get(command);
+        if (event[CLIP_KEY]?.missing) {
+          probe.output_error = "probe output is missing from the run log";
+        } else {
+          const item = event.item ?? event.msg?.item ?? event.data?.item;
+          const output = item.aggregated_output ?? item.output;
+          if (typeof output === "string") probe.output_tail = probeOutputTail(output);
+        }
+        executed.delete(command);
+      }
+      for (const probe of executed.values()) probe.output_error = "probe command event is missing";
+    }
+    for (const command of result.failed_commands) command.output_tail = probeOutputTail(command.output_tail);
+    return textResult({ ...result, run_log: task.run_log });
   }
 };
 

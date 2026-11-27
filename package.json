@@ -24,6 +24,7 @@
     "supervisor"
   ],
   "bin": {
+    "agent-supervisor": "src/interface/bin/cli.js",
     "agent-supervisor-mcp": "src/mcp-server.js",
     "agent-supervisor-accept": "src/interface/bin/acceptance-cli.js",
     "agent-supervisor-setup": "src/interface/bin/setup.js",
