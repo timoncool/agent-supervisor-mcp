@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { SessionDetail } from "../api";
+import { board } from "../i18n/board";
 import { clock, plain, relative, sessionLabel } from "../lib/format";
+import { tr } from "../lib/i18n";
 import { StatusBar } from "./StatusMark";
 import { WorkerLedger } from "./WorkerLedger";
 import { CardRow, HoverCard } from "./HoverCard";
@@ -35,27 +37,27 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
           <HoverCard side="bottom" render={<h2 className={`t-title1 inline-block max-w-full truncate ${session.unsessioned ? "text-label-2" : ""}`}>{name}</h2>}>
             <div className="t-headline">{name}</div>
             <CardRow label="Session id"><span className="mono">{session.id}</span></CardRow>
-            <CardRow label="说明">{session.note ?? (session.title_derived ? "没有记录说明。派单时传 session_title / session_note，或调用 describe_session。" : "—")}</CardRow>
+            <CardRow label={tr(board, "session.note")}>{session.note ?? (session.title_derived ? tr(board, "session.noNote") : "—")}</CardRow>
             {session.project_roots.length > 0 && (
-              <CardRow label="项目根目录"><ul className="mono space-y-0.5">{session.project_roots.map((p) => <li key={p} className="truncate" title={p}>{p}</li>)}</ul></CardRow>
+              <CardRow label={tr(board, "session.roots")}><ul className="mono space-y-0.5">{session.project_roots.map((p) => <li key={p} className="truncate" title={p}>{p}</li>)}</ul></CardRow>
             )}
           </HoverCard>
           <p className="t-subhead mt-1 flex flex-wrap items-center gap-x-3 text-label-2">
             {session.title && !session.unsessioned && <span className="mono">{session.id}</span>}
-            <span>首次派单 {clock(session.first_created_at)}</span>
-            <span>最近活动 {relative(session.last_activity_at)}</span>
-            {session.title_derived && session.title && <span className="text-label-3">标题由各路 goal 拼出，派单时传 session_title 可自定</span>}
+            <span>{tr(board, "session.first", { time: clock(session.first_created_at) })}</span>
+            <span>{tr(board, "session.last", { time: relative(session.last_activity_at) })}</span>
+            {session.title_derived && session.title && <span className="text-label-3">{tr(board, "session.derived")}</span>}
           </p>
           {session.note && <p className="t-subhead mt-2 max-w-[72ch] text-label">{session.note}</p>}
         </motion.div>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Stat label="路" value={session.worker_count} />
-          <Stat label="运行中" value={c.running ?? 0} tone={live ? "text-orange" : "text-label-3"} />
-          <Stat label="完成" value={c.completed ?? 0} tone="text-green" />
-          <Stat label="失败" value={c.failed ?? 0} tone={(c.failed ?? 0) > 0 ? "text-red" : "text-label-3"} />
-          <Stat label="超时" value={c.timed_out ?? 0} tone={(c.timed_out ?? 0) > 0 ? "text-purple" : "text-label-3"} />
-          <Stat label="丢失" value={c.lost ?? 0} tone={(c.lost ?? 0) > 0 ? "text-indigo" : "text-label-3"} />
+          <Stat label={tr(board, "session.workers")} value={session.worker_count} />
+          <Stat label={tr(board, "session.running")} value={c.running ?? 0} tone={live ? "text-orange" : "text-label-3"} />
+          <Stat label={tr(board, "session.completed")} value={c.completed ?? 0} tone="text-green" />
+          <Stat label={tr(board, "session.failed")} value={c.failed ?? 0} tone={(c.failed ?? 0) > 0 ? "text-red" : "text-label-3"} />
+          <Stat label={tr(board, "session.timedOut")} value={c.timed_out ?? 0} tone={(c.timed_out ?? 0) > 0 ? "text-purple" : "text-label-3"} />
+          <Stat label={tr(board, "session.lost")} value={c.lost ?? 0} tone={(c.lost ?? 0) > 0 ? "text-indigo" : "text-label-3"} />
           <div className="w-40"><StatusBar counts={session.counts} total={session.worker_count} /></div>
         </div>
 
@@ -63,7 +65,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
           {live ? (
             <motion.section key="now" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden">
               <div className="inset mt-5 px-4 py-3">
-                <div className="group-header">正在进行</div>
+                <div className="group-header">{tr(board, "session.inProgress")}</div>
                 <ul className="mt-1 divide-y divide-separator-soft">
                   {session.now.map((line) => (
                     <li key={line.id} className="flex min-h-[36px] items-center gap-3">
@@ -80,7 +82,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
             <motion.section key="last" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden">
               <div className="inset mt-5 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="group-header">最近一条汇报</span>
+                  <span className="group-header">{tr(board, "session.lastReport")}</span>
                   <button type="button" onClick={() => onSelectWorker(session.last_report!.id)} className="t-footnote truncate text-blue">{session.last_report.title}</button>
                   <span className="t-caption ml-auto shrink-0 text-label-2">{relative(session.last_report.at)}</span>
                 </div>
@@ -92,7 +94,7 @@ export function SessionBoard({ pages, hasMore, loadingMore, loadMore, selectedWo
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-8 pb-8">
-        <div className="group-header mb-2">Worker（按派单顺序）</div>
+        <div className="group-header mb-2">{tr(board, "session.workersList")}</div>
         <WorkerLedger pages={pages} hasMore={hasMore} loadingMore={loadingMore} loadMore={loadMore} selected={selectedWorker} onSelect={onSelectWorker} />
       </div>
     </div>
