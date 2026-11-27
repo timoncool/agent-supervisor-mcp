@@ -1,3 +1,35 @@
+# agent-supervisor-mcp: форк для Windows с русской доской
+
+Это форк [zriyox/agent-supervisor-mcp](https://github.com/zriyox/agent-supervisor-mcp): MCP-сервер, через который Claude Code раздаёт задачи нескольким Codex-работникам сразу, каждому в своей git worktree, и вливает работу только после того, как сервер сам прогнал тесты приёмки.
+
+Что в форке сверх оригинала:
+- **Windows без окон.** Команды работников не открывают консольные окна и не забирают фокус.
+- **Доска на русском** (ещё английский и китайский) и экран **«Сводка»**: сколько выдано и влито, сколько принято с первого раза, доработки, токены Codex и кредиты подписки по дням и по моделям.
+- **CLI** `agent-supervisor <инструмент> --args '<json>'`: те же инструменты из командной строки, можно делать действия пачкой одним вызовом.
+- **Честная приёмка.** `note_worker` записывает решение ведущего, и отметку «принято» нельзя поставить, пока тесты приёмки не прошли. Работу, проверенную на устаревшей основе, влить нельзя, пока её не перепроверили на текущем коде.
+- **Другие провайдеры** через Codex: `model: "deepseek/deepseek-flash"`; усилие `xhigh` и `max`.
+- **Без фонового автообновления** и без загрузки раннеров по имени npm-пакета.
+
+## Установка форка
+
+Пакет `agent-supervisor-mcp` в npm — это версия автора. Форк ставится из этого репозитория. Нужны Node 22.13+, Git (на Windows — Git for Windows) и Codex CLI, в который выполнен вход (`codex login`).
+
+```
+git clone https://github.com/timoncool/agent-supervisor-mcp.git
+cd agent-supervisor-mcp
+npm ci
+npm --prefix web ci
+npm run web:build
+npm install -g .
+agent-supervisor-setup
+```
+
+`agent-supervisor-setup` кладёт скилл и регистрирует MCP-сервер в Claude Code и Codex. Обновление: `git pull`, затем `npm ci` и `npm run web:build`.
+
+Ниже — исходный README автора.
+
+---
+
 # agent-supervisor-mcp
 
 [English](README.en.md) | 中文
