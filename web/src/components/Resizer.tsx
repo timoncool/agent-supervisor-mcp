@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
+import { board } from "../i18n/board";
+import { tr } from "../lib/i18n";
 
 // The handle between the main column and the drawer. Dragging sets the
 // drawer width; double-click puts it back to the default. The width is a
@@ -56,8 +58,8 @@ export function Resizer({ onChange }: { onChange: (fraction: number) => void }) 
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="调整抽屉宽度"
-      title="拖动调整宽度，双击还原"
+      aria-label={tr(board, "resizer.label")}
+      title={tr(board, "resizer.title")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={stop}
